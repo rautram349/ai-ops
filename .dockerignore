@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+.venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# uv
+.uv/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+
+# Data generation output (can be large)
+data_gen/output/
+
+# Evals results
+evals/results/
+
+# Frontend (built separately in its own stage)
+frontend/
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker files themselves
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Docs
+docs/
+README.md
+
+# Test / coverage
+.pytest_cache/
+.coverage
+htmlcov/

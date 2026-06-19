@@ -1,0 +1,158 @@
+version: "3.9"
+
+# ─────────────────────────────────────────────────────────────────────────────
+# E-commerce Operations Brain — Docker Compose
+#
+# Services:
+#   postgres   - PostgreSQL 16 + pgvector
+#   mcp        - All 5 MCP tool servers (ports 5010-5014)
+#   backend    - FastAPI + LangGraph AI-ops engine (port 8001)
+#   frontend   - Nginx serving the React SPA (port 3001)
+#
+# Optional (enable with --profile langfuse):
+#   langfuse   - Self-hosted Langfuse observability (port 3000)
+#   langfuse-db - Langfuse's own Postgres instance
+#
+# One-off helpers (run manually):
+#   db-init    - Run DB migrations:    docker compose run --rm db-init
+#   data-gen   - Generate 1yr of data: docker compose run --rm data-gen
+# ─────────────────────────────────────────────────────────────────────────────
+
+x-python-base: &python-base
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file: .env
+  restart: unless-stopped
+
+services:
+  # ── PostgreSQL 16 + pgvector ─────────────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ecommerce_ops_brain
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ecommerce_ops_brain"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # ── DB migrations (run once manually) ────────────────────────────────────
+  db-init:
+    <<: *python-base
+    restart: "no"
+    command: python -m db.setup
+    environment:
+      DATABASE_URL_SYNC: postgresql://postgres:postgres@postgres:5432/ecommerce_ops_brain
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── Synthetic data generation (run once manually, takes several minutes) ──
+  data-gen:
+    <<: *python-base
+    restart: "no"
+    command: python -m data_gen.generate
+    environment:
+      DATABASE_URL_SYNC: postgresql://postgres:postgres@postgres:5432/ecommerce_ops_brain
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── MCP tool servers (metrics, inventory, marketing, support) ───
+  mcp:
+    <<: *python-base
+    command: python -m mcp_servers.start
+    environment:
+      # Bind to all interfaces so the backend container can reach them
+      MCP_METRICS_HOST: "0.0.0.0"
+      MCP_INVENTORY_HOST: "0.0.0.0"
+      MCP_MARKETING_HOST: "0.0.0.0"
+      MCP_SUPPORT_HOST: "0.0.0.0"
+      DATABASE_URL_SYNC: postgresql://postgres:postgres@postgres:5432/ecommerce_ops_brain
+    ports:
+      - "5010:5010"
+      - "5011:5011"
+      - "5012:5012"
+      - "5013:5013"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ── FastAPI backend + LangGraph AI-ops engine ──────────────────────────────
+  backend:
+    <<: *python-base
+    # Use uvicorn directly (no --reload in containers)
+    command: uvicorn backend.app:app --host 0.0.0.0 --port 8001
+    environment:
+      BACKEND_HOST: "0.0.0.0"
+      BACKEND_PORT: "8001"
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/ecommerce_ops_brain
+      DATABASE_URL_SYNC: postgresql://postgres:postgres@postgres:5432/ecommerce_ops_brain
+      # Point backend at the mcp service (container name = service name)
+      MCP_METRICS_HOST: mcp
+      MCP_INVENTORY_HOST: mcp
+      MCP_MARKETING_HOST: mcp
+      MCP_SUPPORT_HOST: mcp
+      CORS_ORIGINS: "http://localhost:3001"
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mcp:
+        condition: service_started
+
+  # ── React frontend (nginx) ─────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3001:80"
+    depends_on:
+      - backend
+
+  # ── Langfuse (optional — enable with: docker compose --profile langfuse up) ──
+  # langfuse-db:
+  #   profiles: ["langfuse"]
+  #   image: postgres:16-alpine
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_USER: langfuse
+  #     POSTGRES_PASSWORD: langfuse
+  #     POSTGRES_DB: langfuse
+  #   volumes:
+  #     - langfuse_db_data:/var/lib/postgresql/data
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U langfuse -d langfuse"]
+  #     interval: 5s
+  #     timeout: 5s
+  #     retries: 10
+
+  # langfuse:
+  #   profiles: ["langfuse"]
+  #   image: langfuse/langfuse:latest
+  #   restart: unless-stopped
+  #   environment:
+  #     DATABASE_URL: postgresql://langfuse:langfuse@langfuse-db:5432/langfuse
+  #     NEXTAUTH_URL: http://localhost:3000
+  #     NEXTAUTH_SECRET: "change-me-in-production"
+  #     SALT: "change-me-in-production"
+  #   ports:
+  #     - "3000:3000"
+  #   depends_on:
+  #     langfuse-db:
+  #       condition: service_healthy
+
+volumes:
+  postgres_data:
+  # langfuse_db_data:
