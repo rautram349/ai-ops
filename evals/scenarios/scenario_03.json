@@ -1,0 +1,43 @@
+{
+  "id": "scenario_03",
+  "name": "Shipping Delay Complaints",
+  "incident_ref": "#3",
+  "prompt": "Why are complaints so high on May 7th, 2025?",
+  "max_points": 10,
+  "checks": [
+    {
+      "id": "intent",
+      "type": "intent",
+      "expected": ["support_analysis", "multi_domain"],
+      "points": 2
+    },
+    {
+      "id": "support_domain_queried",
+      "type": "domains_queried",
+      "expected": ["support"],
+      "points": 2
+    },
+    {
+      "id": "complaint_tool_called",
+      "type": "tools_called",
+      "expected": ["get_complaint_summary"],
+      "points": 2
+    },
+    {
+      "id": "findings_not_empty",
+      "type": "findings_not_empty",
+      "points": 1
+    },
+    {
+      "id": "shipping_keyword",
+      "type": "keywords_in_summary",
+      "expected": ["shipping", "delay", "complaint", "support"],
+      "points": 2
+    },
+    {
+      "id": "recommendations_not_empty",
+      "type": "recommendations_not_empty",
+      "points": 1
+    }
+  ]
+}

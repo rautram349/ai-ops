@@ -1,0 +1,38 @@
+{
+  "id": "scenario_10",
+  "name": "Executive Business Health Summary",
+  "incident_ref": null,
+  "prompt": "Summarize the business health for the week of November 24th to November 30th, 2025.",
+  "max_points": 10,
+  "checks": [
+    {
+      "id": "intent",
+      "type": "intent",
+      "expected": ["multi_domain", "sales_analysis"],
+      "points": 1
+    },
+    {
+      "id": "multiple_domains",
+      "type": "domains_queried",
+      "expected": ["metrics", "inventory"],
+      "points": 2
+    },
+    {
+      "id": "findings_not_empty",
+      "type": "findings_not_empty",
+      "points": 3
+    },
+    {
+      "id": "summary_keyword",
+      "type": "keywords_in_summary",
+      "expected": ["revenue", "sales", "order", "business"],
+      "points": 2
+    },
+    {
+      "id": "structured_output_valid",
+      "type": "structured_output_valid",
+      "expected": ["summary", "findings", "recommendations"],
+      "points": 2
+    }
+  ]
+}

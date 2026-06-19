@@ -1,0 +1,60 @@
+{
+  "id": "scenario_02",
+  "name": "Campaign Disruption",
+  "incident_ref": "#2",
+  "prompt": "Sales are down on May 1st, 2025. What's going on?",
+  "max_points": 10,
+  "checks": [
+    {
+      "id": "intent",
+      "type": "intent",
+      "expected": ["sales_analysis", "multi_domain", "marketing_performance"],
+      "points": 2
+    },
+    {
+      "id": "domains_queried",
+      "type": "domains_queried",
+      "expected": ["metrics", "marketing"],
+      "points": 2
+    },
+    {
+      "id": "campaign_tool_called",
+      "type": "any_tool_called",
+      "expected": [
+        "get_campaign_status",
+        "get_campaign_performance",
+        "get_missed_promotions",
+        "get_channel_performance"
+      ],
+      "points": 2
+    },
+    {
+      "id": "findings_not_empty",
+      "type": "findings_not_empty",
+      "points": 1
+    },
+    {
+      "id": "campaign_keyword",
+      "type": "keywords_in_response",
+      "expected": [
+        "campaign",
+        "marketing",
+        "paused",
+        "traffic",
+        "promotion",
+        "promotional",
+        "channel",
+        "advertisement",
+        "coupon",
+        "email"
+      ],
+      "points": 2
+    },
+    {
+      "id": "structured_output_valid",
+      "type": "structured_output_valid",
+      "expected": ["summary", "findings", "recommendations"],
+      "points": 1
+    }
+  ]
+}

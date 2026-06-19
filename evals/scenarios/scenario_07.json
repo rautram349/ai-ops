@@ -1,0 +1,39 @@
+{
+  "id": "scenario_07",
+  "name": "Pure Memory Query",
+  "incident_ref": "#7",
+  "prompt": "What did we do last time sales dropped like this?",
+  "max_points": 10,
+  "checks": [
+    {
+      "id": "intent",
+      "type": "intent",
+      "expected": "memory_recall",
+      "points": 2
+    },
+    {
+      "id": "memory_matches_present",
+      "type": "memory_matches_present",
+      "points": 3
+    },
+    {
+      "id": "no_mcp_tool_calls",
+      "type": "no_mcp_tool_calls",
+      "points": 2
+    },
+    {
+      "id": "actions_outcome_keyword",
+      "type": "keywords_in_summary",
+      "expected": [
+        "incident",
+        "action",
+        "taken",
+        "outcome",
+        "restock",
+        "discount",
+        "past"
+      ],
+      "points": 3
+    }
+  ]
+}

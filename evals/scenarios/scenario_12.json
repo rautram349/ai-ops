@@ -1,0 +1,38 @@
+{
+  "id": "scenario_12",
+  "name": "Cross-Domain Correlation",
+  "incident_ref": "#5",
+  "prompt": "Did out-of-stock products on May 18th, 2025 also have active marketing campaigns running?",
+  "max_points": 10,
+  "checks": [
+    {
+      "id": "intent",
+      "type": "intent",
+      "expected": ["multi_domain", "inventory_check", "marketing_performance"],
+      "points": 1
+    },
+    {
+      "id": "both_domains_queried",
+      "type": "domains_queried",
+      "expected": ["inventory", "marketing"],
+      "points": 2
+    },
+    {
+      "id": "findings_not_empty",
+      "type": "findings_not_empty",
+      "points": 3
+    },
+    {
+      "id": "campaign_and_stockout_keyword",
+      "type": "keywords_in_summary",
+      "expected": ["campaign", "stock", "product"],
+      "points": 3
+    },
+    {
+      "id": "structured_output_valid",
+      "type": "structured_output_valid",
+      "expected": ["summary", "findings", "recommendations"],
+      "points": 1
+    }
+  ]
+}

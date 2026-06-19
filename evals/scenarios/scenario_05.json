@@ -1,0 +1,38 @@
+{
+  "id": "scenario_05",
+  "name": "Week-over-Week Sales Comparison",
+  "incident_ref": null,
+  "prompt": "Compare sales for the week of November 24th–30th, 2025 with the previous week November 17th–23rd, 2025.",
+  "max_points": 10,
+  "checks": [
+    {
+      "id": "intent",
+      "type": "intent",
+      "expected": ["sales_analysis", "multi_domain"],
+      "points": 2
+    },
+    {
+      "id": "compare_tool_called",
+      "type": "tools_called",
+      "expected": ["compare_sales"],
+      "points": 2
+    },
+    {
+      "id": "findings_not_empty",
+      "type": "findings_not_empty",
+      "points": 2
+    },
+    {
+      "id": "change_keyword",
+      "type": "keywords_in_summary",
+      "expected": ["change", "revenue", "week", "period", "comparison"],
+      "points": 2
+    },
+    {
+      "id": "structured_output_valid",
+      "type": "structured_output_valid",
+      "expected": ["summary", "findings", "recommendations"],
+      "points": 2
+    }
+  ]
+}
