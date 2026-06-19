@@ -1,0 +1,63 @@
+{
+  "id": "scenario_15",
+  "name": "Multi-Turn Conversation",
+  "incident_ref": "#7",
+  "multi_turn": true,
+  "max_points": 10,
+  "turns": [
+    {
+      "prompt": "Why did sales drop on May 28th, 2025?",
+      "checks": [
+        {
+          "id": "turn1_intent",
+          "type": "intent",
+          "expected": ["sales_analysis", "multi_domain"],
+          "points": 2
+        },
+        {
+          "id": "turn1_domains",
+          "type": "domains_queried",
+          "expected": ["metrics", "inventory"],
+          "points": 1
+        },
+        {
+          "id": "turn1_findings",
+          "type": "findings_not_empty",
+          "points": 1
+        }
+      ]
+    },
+    {
+      "prompt": "Tell me more about the inventory situation",
+      "checks": [
+        {
+          "id": "turn2_intent",
+          "type": "intent",
+          "expected": ["inventory_check", "sales_analysis", "multi_domain"],
+          "points": 1
+        },
+        {
+          "id": "turn2_inventory_queried",
+          "type": "domains_queried",
+          "expected": ["inventory"],
+          "points": 2
+        }
+      ]
+    },
+    {
+      "prompt": "Fix it — restock whatever is out of stock",
+      "checks": [
+        {
+          "id": "turn3_needs_write",
+          "type": "needs_write_true",
+          "points": 2
+        },
+        {
+          "id": "turn3_no_write_before_approval",
+          "type": "no_write_tool_before_approval",
+          "points": 1
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "id": "scenario_11",
+  "name": "Non-Obvious Checkout Bug",
+  "incident_ref": "#6",
+  "prompt": "Why did we have fewer orders on May 23rd, 2025?",
+  "max_points": 10,
+  "checks": [
+    {
+      "id": "intent",
+      "type": "intent",
+      "expected": ["sales_analysis", "multi_domain", "support_analysis"],
+      "points": 1
+    },
+    {
+      "id": "support_queried",
+      "type": "domains_queried",
+      "expected": ["support"],
+      "points": 2
+    },
+    {
+      "id": "findings_not_empty",
+      "type": "findings_not_empty",
+      "points": 2
+    },
+    {
+      "id": "payment_or_complaint_keyword",
+      "type": "keywords_in_summary",
+      "expected": [
+        "payment",
+        "checkout",
+        "complaint",
+        "support",
+        "conversion",
+        "error",
+        "order",
+        "refund",
+        "issue",
+        "fewer"
+      ],
+      "points": 3
+    },
+    {
+      "id": "ticket_or_investigate_recommended",
+      "type": "action_type_in_recommendations",
+      "expected": ["create_ticket", "investigate", "monitor"],
+      "points": 2
+    }
+  ]
+}

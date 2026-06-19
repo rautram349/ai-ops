@@ -1,0 +1,38 @@
+{
+  "id": "scenario_06",
+  "name": "Memory Recall — Repeat Stockout",
+  "incident_ref": "#7",
+  "prompt": "Has there been a stockout incident like this before? What did we do last time?",
+  "max_points": 10,
+  "checks": [
+    {
+      "id": "intent",
+      "type": "intent",
+      "expected": "memory_recall",
+      "points": 2
+    },
+    {
+      "id": "memory_matches_present",
+      "type": "memory_matches_present",
+      "points": 3
+    },
+    {
+      "id": "no_mcp_tool_calls",
+      "type": "no_mcp_tool_calls",
+      "points": 2
+    },
+    {
+      "id": "past_incident_keyword",
+      "type": "keywords_in_summary",
+      "expected": [
+        "stockout",
+        "stock",
+        "before",
+        "past",
+        "incident",
+        "previous"
+      ],
+      "points": 3
+    }
+  ]
+}

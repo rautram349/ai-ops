@@ -1,0 +1,50 @@
+{
+  "id": "scenario_01",
+  "name": "Simple Stockout Diagnosis",
+  "incident_ref": "#1",
+  "prompt": "Why did sales drop on April 24th, 2025?",
+  "max_points": 10,
+  "checks": [
+    {
+      "id": "intent",
+      "type": "intent",
+      "expected": ["sales_analysis", "multi_domain", "inventory_check"],
+      "points": 2
+    },
+    {
+      "id": "domains_queried",
+      "type": "domains_queried",
+      "expected": ["metrics", "inventory"],
+      "points": 2
+    },
+    {
+      "id": "tools_called",
+      "type": "any_tool_called",
+      "expected": [
+        "get_sales_summary",
+        "detect_anomaly",
+        "get_stockout_events",
+        "get_revenue_by_product",
+        "compare_sales"
+      ],
+      "points": 1
+    },
+    {
+      "id": "findings_not_empty",
+      "type": "findings_not_empty",
+      "points": 1
+    },
+    {
+      "id": "stockout_keyword",
+      "type": "keywords_in_summary",
+      "expected": ["stockout", "stock", "inventory", "out-of-stock"],
+      "points": 2
+    },
+    {
+      "id": "restock_recommended",
+      "type": "action_type_in_recommendations",
+      "expected": ["restock", "investigate"],
+      "points": 2
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "id": "scenario_04",
+  "name": "Multi-Factor Diagnosis",
+  "incident_ref": "#5",
+  "prompt": "Why did sales drop so much on May 18th, 2025?",
+  "max_points": 10,
+  "checks": [
+    {
+      "id": "intent",
+      "type": "intent",
+      "expected": ["sales_analysis", "multi_domain"],
+      "points": 1
+    },
+    {
+      "id": "multiple_domains",
+      "type": "domains_queried",
+      "expected": ["metrics", "inventory", "marketing"],
+      "points": 2
+    },
+    {
+      "id": "findings_multiple",
+      "type": "findings_count_gte",
+      "expected": 2,
+      "points": 2
+    },
+    {
+      "id": "stockout_cause",
+      "type": "keywords_in_summary",
+      "expected": [
+        "stockout",
+        "stock",
+        "inventory",
+        "out-of-stock",
+        "availability",
+        "supply",
+        "unavailable",
+        "out of stock"
+      ],
+      "points": 2
+    },
+    {
+      "id": "campaign_cause",
+      "type": "keywords_in_summary",
+      "expected": ["campaign", "marketing", "fatigue"],
+      "points": 2
+    },
+    {
+      "id": "structured_output_valid",
+      "type": "structured_output_valid",
+      "expected": ["summary", "findings", "recommendations"],
+      "points": 1
+    }
+  ]
+}
