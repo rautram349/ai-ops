@@ -1,0 +1,70 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+.eggs/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# ── Virtual environments ───────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+.env.local
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+# Keep the example file (no secrets)
+!.env.example
+
+# ── IDE / editor ──────────────────────────────────────────────────────────────
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+*~
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Database ──────────────────────────────────────────────────────────────────
+*.db
+*.sqlite3
+
+# ── Data generation output (CSV backups — large files) ───────────────────────
+data_gen/output/*.csv
+
+# ── Evaluation results ────────────────────────────────────────────────────────
+evals/results/*.json
+evals/results/*.csv
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Node / frontend ───────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env
+.vite/
+
+# ── uv / pip ──────────────────────────────────────────────────────────────────
+# Keep uv.lock committed (reproducible installs)
+# Keep requirements.txt committed
+
+.codemie
+
+docs/
+evals/results/
+docs/
