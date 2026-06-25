@@ -16,12 +16,12 @@ Run this server::
 from __future__ import annotations
 
 import os
-from typing import Optional
+import re
 
 from dotenv import load_dotenv
 from fastmcp import FastMCP
 
-from mcp_servers.db import execute_query, execute_write, safe_date
+from mcp_servers.db import execute_query, safe_date
 
 load_dotenv()
 
@@ -36,11 +36,67 @@ _PORT = int(os.environ.get("MCP_INVENTORY_PORT", "5011"))
 # ─────────────────────────────────────────────────────────────────────────────
 
 @mcp.tool()
+def resolve_products(text: str, limit: int = 5) -> dict:
+    """Resolve product IDs or product names mentioned in free text.
+
+    This read-only helper is intended for action planning.  It first detects
+    explicit product IDs such as ``PROD-063`` or ``PROD -063``.  If no IDs are
+    present, it looks for product names contained in the text.
+    """
+    cleaned = " ".join((text or "").split())
+    limit = max(1, min(int(limit or 5), 20))
+
+    product_ids = []
+    seen = set()
+    for match in re.finditer(r"\bPROD\s*-?\s*(\d{1,4})\b", cleaned, flags=re.IGNORECASE):
+        pid = f"PROD-{int(match.group(1)):03d}"
+        if pid not in seen:
+            seen.add(pid)
+            product_ids.append(pid)
+
+    if product_ids:
+        rows = execute_query(
+            """
+            SELECT product_id, name AS product_name, category
+            FROM products
+            WHERE product_id = ANY(%(pids)s)
+            ORDER BY product_id
+            """,
+            {"pids": product_ids},
+        )
+        return {
+            "query": text,
+            "matches": [dict(r) for r in rows],
+            "match_count": len(rows),
+            "ambiguous": False,
+            "resolution_method": "product_id",
+        }
+
+    rows = execute_query(
+        """
+        SELECT product_id, name AS product_name, category
+        FROM products
+        WHERE %(text)s ILIKE ('%%' || name || '%%')
+        ORDER BY LENGTH(name) DESC, product_id
+        LIMIT %(limit)s
+        """,
+        {"text": cleaned, "limit": limit},
+    )
+    return {
+        "query": text,
+        "matches": [dict(r) for r in rows],
+        "match_count": len(rows),
+        "ambiguous": len(rows) > 1,
+        "resolution_method": "product_name",
+    }
+
+
+@mcp.tool()
 def get_stock_levels(
-    product_ids: Optional[list[str]] = None,
-    region: Optional[str] = None,
-    category: Optional[str] = None,
-    date: Optional[str] = None,
+    product_ids: list[str] | None = None,
+    region: str | None = None,
+    category: str | None = None,
+    date: str | None = None,
     include_zero_stock: bool = False,
 ) -> dict:
     """Get current stock levels for products.
@@ -50,6 +106,7 @@ def get_stock_levels(
     """
     date = safe_date(date)
     # Resolve the snapshot date
+    snap_date: str | None
     if date:
         snap_date = date
     else:
@@ -99,11 +156,11 @@ def get_stock_levels(
 @mcp.tool()
 def get_stockout_events(
     start_date: str,
-    end_date: Optional[str] = None,
+    end_date: str | None = None,
     min_stockout_hours: float = 1.0,
 ) -> dict:
     """Get products that had stockout events in a date range."""
-    start_date = safe_date(start_date)  # type: ignore[assignment]
+    start_date = safe_date(start_date)
     end = safe_date(end_date) or start_date
 
     sql = """
@@ -136,12 +193,12 @@ def get_stockout_events(
 @mcp.tool()
 def get_near_stockout(
     threshold_days: int = 3,
-    region: Optional[str] = None,
+    region: str | None = None,
 ) -> dict:
     """Get products that are near stockout threshold.
 
     A product/region is 'near stockout' when its current closing stock is
-    less than *threshold_days* × average daily demand calculated over the
+    less than *threshold_days* x average daily demand calculated over the
     last 30 days.
     """
     # Latest snapshot date
@@ -209,11 +266,11 @@ def get_near_stockout(
 @mcp.tool()
 def get_product_availability_impact(
     start_date: str,
-    end_date: Optional[str] = None,
-    product_ids: Optional[list[str]] = None,
+    end_date: str | None = None,
+    product_ids: list[str] | None = None,
 ) -> dict:
     """Analyse the revenue impact of stock availability issues."""
-    start_date = safe_date(start_date)  # type: ignore[assignment]
+    start_date = safe_date(start_date)
     end = safe_date(end_date) or start_date
 
     filters = ["id.date BETWEEN %(start)s AND %(end)s"]
@@ -278,8 +335,9 @@ def restock_product(
     if not product_rows:
         return {"error": f"Product '{product_id}' not found"}
 
-    from mcp_servers.db import db_connection
     import psycopg2.extras
+
+    from mcp_servers.db import db_connection
 
     with db_connection() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:

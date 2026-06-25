@@ -5,9 +5,9 @@ docs/specs/03_data_incident_spec.md sections 3.8 and 6.
 
 Key behaviours:
     - Baseline return rate: 4 % of orders.
-    - Returns reference orders from 1–7 days prior (never same-day).
-    - Shipping-delay incident (Day 24) → return spike on Days 27–29 (lag +3 to +5).
-    - Review surge / product defect (Day 50) → return spike on Days 52–55 (lag +2 to +5).
+    - Returns reference orders from 1-7 days prior (never same-day).
+    - Shipping-delay incident (Day 24) → return spike on Days 27-29 (lag +3 to +5).
+    - Review surge / product defect (Day 50) → return spike on Days 52-55 (lag +2 to +5).
     - Multi-factor incidents → mild return uptick.
 
 Usage::
@@ -26,8 +26,8 @@ from data_gen.generators.constants import (
     BASE_RETURN_RATE,
     END_DATE,
     INCIDENT_CALENDAR,
-    RETURN_REASONS,
     RETURN_REASON_WEIGHTS,
+    RETURN_REASONS,
     SEED,
     START_DATE,
 )
@@ -91,7 +91,7 @@ def generate_returns(
 ) -> pd.DataFrame:
     """Generate return and refund records for the full simulation period.
 
-    For each day, samples a fraction of orders placed on prior days (1–7 days
+    For each day, samples a fraction of orders placed on prior days (1-7 days
     earlier) and marks them as returned.  The return multiplier from the
     incident calendar is applied to the base return rate on affected days.
 
@@ -137,7 +137,7 @@ def generate_returns(
         multiplier = multiplier_map.get(current_date, 1.0)
         rate = BASE_RETURN_RATE * multiplier
 
-        # Look back 1–7 days for eligible orders to return today
+        # Look back 1-7 days for eligible orders to return today
         for lag in range(RETURN_LAG_LO, RETURN_LAG_HI + 1):
             source_date = current_date - timedelta(days=lag)
             if source_date < _start:

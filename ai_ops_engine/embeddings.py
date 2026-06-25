@@ -16,7 +16,7 @@ def get_embeddings_model() -> AzureOpenAIEmbeddings:
         azure_deployment=settings.epam_dial_embedding_deployment,
         azure_endpoint=settings.epam_dial_endpoint,
         api_key=settings.epam_dial_api_key,  # type: ignore[arg-type]
-        openai_api_version=settings.epam_dial_api_version,
+        api_version=settings.epam_dial_api_version,
     )
 
 

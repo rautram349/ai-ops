@@ -7,7 +7,8 @@ import json
 import structlog
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from ai_ops_engine.graph.nodes.shared import  _strip_code_fences
+from ai_ops_engine.graph.domains import DOMAINS
+from ai_ops_engine.graph.nodes.shared import _strip_code_fences
 from ai_ops_engine.graph.state import AgentState
 from ai_ops_engine.llm import get_llm
 from ai_ops_engine.prompts import PLAN_DOMAINS_SYSTEM as _PLAN_DOMAINS_SYSTEM
@@ -29,7 +30,7 @@ def _default_domains(intent: str) -> list[str]:
 
 async def plan_domains(state: AgentState) -> dict:
     """Decide which domains to investigate based on intent and query."""
-    
+
     llm = get_llm()
     query = state["user_query"]
     intent = state["intent"]
@@ -40,9 +41,9 @@ async def plan_domains(state: AgentState) -> dict:
             HumanMessage(content=f"Intent: {intent}\nQuery: {query}"),
         ]
     )
-    
 
-    raw = response.content if hasattr(response, "content") else str(response)
+
+    raw: str = str(response.content) if hasattr(response, "content") else str(response)
     logger.info("plan_domains_raw", raw=raw[:300], intent=intent)
 
     try:
@@ -52,7 +53,7 @@ async def plan_domains(state: AgentState) -> dict:
     except (json.JSONDecodeError, AttributeError):
         domains = _default_domains(intent)
 
-    valid = {"sales", "inventory", "marketing", "support"}
+    valid = DOMAINS
     domains = [d for d in domains if d in valid]
     if not domains:
         domains = _default_domains(intent)

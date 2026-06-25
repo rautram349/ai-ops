@@ -17,12 +17,11 @@ Key design decisions
 from __future__ import annotations
 
 import operator
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, NotRequired
 
 from langchain_core.messages import BaseMessage
 from langgraph.graph.message import add_messages
-from typing_extensions import NotRequired, TypedDict
-
+from typing_extensions import TypedDict
 
 # ── Intent literals ───────────────────────────────────────────────────────────
 
@@ -35,6 +34,7 @@ Intent = Literal[
     "memory_recall",
     "irrelevant",
     "unknown",
+    "action",
 ]
 
 # ── Tool call record ──────────────────────────────────────────────────────────
@@ -79,6 +79,11 @@ class AgentState(TypedDict):
     # Whether all required approvals have been granted
     approved: bool
 
+    # Deterministic action-planning blocker. Used when the user requested a
+    # write action, but the request cannot be converted into an executable
+    # approval because required targets are missing or ambiguous.
+    action_plan_blocker: dict[str, Any] | None
+
     # Final response fields (populated by the respond node)
     response_summary: str
     response_details: dict[str, Any]
@@ -112,7 +117,7 @@ class AgentState(TypedDict):
     # LLM's assessment of evidence quality (produced by the reflect node)
     reflection_summary: str
 
-    # 0.0–1.0 evidence-sufficiency score from reflect (injected into respond prompt)
+    # 0.0-1.0 evidence-sufficiency score from reflect (injected into respond prompt)
     reflection_confidence: float
 
     # Targeted follow-up tool list produced by reflect. Non-empty → loop back to

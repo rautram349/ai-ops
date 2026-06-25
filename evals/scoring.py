@@ -112,9 +112,9 @@ def evaluate_check(check_def: dict[str, Any], result: dict[str, Any]) -> CheckRe
         called = {r.get("tool", "") for r in tool_results}
         actual = sorted(called)
         expected_set = set(expected) if isinstance(expected, list) else {expected}
-        matched = expected_set.intersection(called)
-        passed = bool(matched)
-        note = f"expected any of {sorted(expected_set)}, matched: {sorted(matched)}, got: {sorted(called)}"
+        kw_match = expected_set.intersection(called)
+        passed = bool(kw_match)
+        note = f"expected any of {sorted(expected_set)}, matched: {sorted(kw_match)}, got: {sorted(called)}"
 
     # ── domains_queried — expected servers queried ────────────────────────────
     elif check_type == "domains_queried":
@@ -172,6 +172,11 @@ def evaluate_check(check_def: dict[str, Any], result: dict[str, Any]) -> CheckRe
     elif check_type == "needs_write_true":
         actual = result.get("needs_write")
         passed = actual is True
+
+    # ?? needs_write_false ?????????????????????????????????????????????????????
+    elif check_type == "needs_write_false":
+        actual = result.get("needs_write")
+        passed = actual is False
 
     # ── no_write_tool_before_approval ─────────────────────────────────────────
     elif check_type == "no_write_tool_before_approval":
@@ -248,7 +253,7 @@ def score_scenario(scenario: dict[str, Any], result: dict[str, Any]) -> Scenario
 def score_multi_turn(scenario: dict[str, Any], turn_results: list[dict[str, Any]]) -> ScenarioScore:
     """Score a multi-turn scenario by combining checks across all turns."""
     all_checks: list[CheckResult] = []
-    for turn_def, result in zip(scenario.get("turns", []), turn_results):
+    for turn_def, result in zip(scenario.get("turns", []), turn_results, strict=False):
         turn_checks = [evaluate_check(c, result) for c in turn_def.get("checks", [])]
         all_checks.extend(turn_checks)
 

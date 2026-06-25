@@ -9,6 +9,9 @@ from langchain_core.messages import AIMessage
 
 from ai_ops_engine.embeddings import embed_text
 from ai_ops_engine.graph.state import AgentState
+# FIXME: inject via MemoryProvider protocol
+from backend.db.connection import AsyncSessionLocal
+from backend.db.repositories import IncidentRepository
 
 logger = structlog.get_logger(__name__)
 
@@ -44,9 +47,6 @@ async def memory_agent(state: AgentState) -> dict[str, Any]:
                 AIMessage(content="[memory_agent] Embedding generation failed.")
             ],
         }
-
-    from backend.db.connection import AsyncSessionLocal
-    from backend.db.repositories.approvals import IncidentRepository
 
     memory_matches: list[dict[str, Any]] = []
     try:

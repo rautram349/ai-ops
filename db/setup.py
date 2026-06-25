@@ -31,9 +31,9 @@ import sys
 from pathlib import Path
 
 import psycopg2
+from dotenv import load_dotenv
 from psycopg2 import sql
 from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
-from dotenv import load_dotenv
 
 # ---------------------------------------------------------------------------
 # Logging

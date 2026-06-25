@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import logging
 import os
-import signal
 import socket
 import subprocess
 import sys

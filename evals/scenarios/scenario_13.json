@@ -1,13 +1,13 @@
 {
   "id": "scenario_13",
-  "name": "Action Request Approval Gate (Rejection Path)",
+  "name": "Incomplete Bulk Action Request Blocked",
   "incident_ref": null,
   "prompt": "Pause all underperforming campaigns and restock the low-stock products right now.",
   "max_points": 10,
   "checks": [
     {
-      "id": "needs_write_true",
-      "type": "needs_write_true",
+      "id": "needs_write_false",
+      "type": "needs_write_false",
       "points": 4
     },
     {
@@ -19,6 +19,12 @@
       "id": "findings_not_empty",
       "type": "findings_not_empty",
       "points": 2
+    },
+    {
+      "id": "missing_target_explained",
+      "type": "keywords_in_response",
+      "expected": ["product ID", "product name", "region", "quantity"],
+      "points": 0
     }
   ]
 }

@@ -17,13 +17,14 @@ inside a FastAPI lifespan.
 from __future__ import annotations
 
 import asyncio
+import json
+import threading
 from typing import Any
 
 from fastmcp import Client
 from fastmcp.client.transports import SSETransport
 
 from backend.core.config import settings
-
 
 # ── Server URL map ────────────────────────────────────────────────────────────
 
@@ -91,8 +92,6 @@ class MCPClient:
         # Newer FastMCP versions return a CallToolResult object with a
         # .content attribute; older versions return a plain list of content
         # blocks directly.  Normalise both shapes here.
-        import json
-
         content_blocks: list[Any] = []
         if isinstance(result, list):
             content_blocks = result
@@ -128,6 +127,7 @@ class MCPClient:
 
 # ── Module-level singleton ────────────────────────────────────────────────────
 
+_client_lock = threading.Lock()
 _client: MCPClient | None = None
 
 
@@ -135,5 +135,7 @@ def get_mcp_client() -> MCPClient:
     """Return the module-level MCPClient singleton."""
     global _client
     if _client is None:
-        _client = MCPClient()
+        with _client_lock:
+            if _client is None:
+                _client = MCPClient()
     return _client

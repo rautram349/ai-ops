@@ -1,35 +1,31 @@
 """Approvals router.
 
 Endpoints:
-    GET  /api/approvals                    – list approval requests (+ status filter)
-    GET  /api/approvals/{id}               – get a single approval request
-    POST /api/approvals/{id}/approve       – approve an action
-    POST /api/approvals/{id}/reject        – reject an action
+    GET  /api/approvals                    - list approval requests (+ status filter)
+    GET  /api/approvals/{id}               - get a single approval request
+    POST /api/approvals/{id}/approve       - approve an action
+    POST /api/approvals/{id}/reject        - reject an action
 """
 
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, field_serializer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.db.connection import get_db
-from backend.db.repositories import ApprovalRepository
 from ai_ops_engine.clients.mcp_client import get_mcp_client
+from ai_ops_engine.graph.write_tools import WRITE_TOOL_SERVER as _TOOL_SERVER_MAP
+from backend.db.connection import get_db
+from backend.db.repositories import ApprovalRepository, IncidentRepository
+
+logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/api/approvals", tags=["approvals"])
-
-# Maps write tool names → MCP server name
-_TOOL_SERVER_MAP: dict[str, str] = {
-    "restock_product":       "inventory",
-    "pause_campaign":        "marketing",
-    "apply_discount":        "marketing",
-    "create_support_ticket": "support",
-}
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -66,11 +62,6 @@ class ApprovalListOut(BaseModel):
 class DecisionRequest(BaseModel):
     decided_by: str = "user"
     note: str | None = None
-    decision_note: str | None = None
-
-    @property
-    def resolved_note(self) -> str | None:
-        return self.note if self.note is not None else self.decision_note
 
 
 class ExecutionOut(BaseModel):
@@ -178,7 +169,7 @@ async def approve_action(
         approval_id,
         decision="approved",
         decided_by=body.decided_by,
-        decision_note=body.resolved_note,
+        decision_note=body.note,
     )
     # Commit NOW so the status change is visible to the /execute request that
     # arrives immediately after this response is sent. Without this explicit
@@ -223,7 +214,7 @@ async def reject_action(
         approval_id,
         decision="rejected",
         decided_by=body.decided_by,
-        decision_note=body.resolved_note,
+        decision_note=body.note,
     )
     await db.commit()  # Same race-condition fix as approve_action above.
     return ApprovalOut.model_validate(updated)
@@ -267,7 +258,7 @@ async def execute_action(
         )
 
     client = get_mcp_client()
-    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    now = datetime.now(UTC).replace(tzinfo=None)
     arguments = dict(approval.target_entities or {})
 
     # ── Argument normalisation ──────────────────────────────────────────────
@@ -294,6 +285,37 @@ async def execute_action(
             result=result_dict,
             success=True,
         )
+
+        # ── Backfill incident with execution result ────────────────────────
+        if approval.conversation_id is not None:
+            try:
+                incident_repo = IncidentRepository(db)
+                incidents = await incident_repo.find_by_conversation(
+                    approval.conversation_id, limit=1
+                )
+                if incidents:
+                    action_record = {
+                        "action_type": approval.action_type,
+                        "tool": approval.action_type,
+                        "server": server,
+                        "arguments": arguments,
+                        "result": result_dict,
+                        "success": True,
+                    }
+                    outcome = (
+                        f"Executed {approval.action_type} on "
+                        f"{server} — success"
+                    )
+                    await incident_repo.update_after_execution(
+                        incident=incidents[0],
+                        actions_taken=[action_record],
+                        outcome_summary=outcome,
+                        resolved=True,
+                    )
+            except Exception as inc_exc:
+                logger.warning("incident_backfill_failed", error=str(inc_exc))
+        # ────────────────────────────────────────────────────────────────────
+
         await db.commit()
         return ExecutionOut(
             approval_id=approval_id,

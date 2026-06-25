@@ -5,7 +5,7 @@ docs/specs/03_data_incident_spec.md section 3.1.
 
 For each (date, region, channel) combination the generator computes:
     - Sessions based on baseline, weekday factor, campaign lift, and noise.
-    - Unique visitors ≈ 70–85 % of sessions.
+    - Unique visitors ≈ 70-85 % of sessions.
     - Bounce rate and avg session duration with light noise.
 
 Incident modifiers:
@@ -31,8 +31,8 @@ from data_gen.generators.constants import (
     CHANNEL_WEIGHTS,
     END_DATE,
     INCIDENT_CALENDAR,
-    REGIONS,
     REGION_WEIGHTS,
+    REGIONS,
     SEED,
     START_DATE,
     TRAFFIC_CHANNELS,
@@ -41,7 +41,7 @@ from data_gen.generators.constants import (
 
 logger = logging.getLogger(__name__)
 
-# Bounce rate range (fraction 0–1)
+# Bounce rate range (fraction 0-1)
 BOUNCE_RATE_LO: float = 0.30
 BOUNCE_RATE_HI: float = 0.65
 
@@ -122,8 +122,8 @@ def generate_traffic(
         channel_multipliers: dict[str, float] = modifier.get("channel_multipliers", {})
         region_filter: str | None = modifier.get("region_filter")
 
-        for region, r_weight in zip(REGIONS, REGION_WEIGHTS):
-            for channel, c_weight in zip(TRAFFIC_CHANNELS, CHANNEL_WEIGHTS):
+        for region, r_weight in zip(REGIONS, REGION_WEIGHTS, strict=False):
+            for channel, c_weight in zip(TRAFFIC_CHANNELS, CHANNEL_WEIGHTS, strict=False):
                 noise = 1.0 + float(rng.normal(0, 0.05))
 
                 # Apply incident channel modifier (region-filtered if needed)

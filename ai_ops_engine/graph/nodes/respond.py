@@ -8,12 +8,15 @@ from typing import Any
 import structlog
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
+from ai_ops_engine.graph.domains import DOMAIN_TO_AGENT
 from ai_ops_engine.graph.nodes.shared import (
+    SKIP_MESSAGE_PREFIXES,
     _strip_code_fences,
     _summarise_domain_findings,
     _summarise_tool_results,
 )
 from ai_ops_engine.graph.state import AgentState
+from ai_ops_engine.graph.write_tools import WRITE_TOOL_NAMES
 from ai_ops_engine.llm import get_llm
 from ai_ops_engine.prompts import RESPOND_SYSTEM as _RESPOND_SYSTEM
 
@@ -31,35 +34,17 @@ async def respond(state: AgentState) -> dict:
         for r in state["tool_results"]
         if r.get("error") is None
         and r.get("tool")
-        in {
-            "restock_product",
-            "pause_campaign",
-            "apply_discount",
-            "create_support_ticket",
-        }
+        in WRITE_TOOL_NAMES
     ]
 
-    _SKIP_PREFIXES = (
-        "[route]",
-        "[plan_domains]",
-        "[synthesize]",
-        "[plan]",
-        "[execute]",
-        "[memory_agent]",
-    )
     prior_msgs = [
         m
         for m in state.get("messages", [])
         if isinstance(m, (HumanMessage, AIMessage))
-        and not m.content.startswith(_SKIP_PREFIXES)
+        and not str(m.content).startswith(SKIP_MESSAGE_PREFIXES)
         and not any(
-            m.content.startswith(f"[{a}]")
-            for a in (
-                "sales_agent",
-                "inventory_agent",
-                "marketing_agent",
-                "support_agent",
-            )
+            str(m.content).startswith(f"[{a}]")
+            for a in DOMAIN_TO_AGENT.values()
         )
         and m.content != state["user_query"]
     ]
@@ -99,14 +84,12 @@ async def respond(state: AgentState) -> dict:
         respond_content += "\n\nNo matching past incidents were found in memory."
 
     response = await llm.ainvoke(
-        [SystemMessage(content=_RESPOND_SYSTEM)]
-        + prior_msgs[-6:]
-        + [HumanMessage(content=respond_content)]
+        [SystemMessage(content=_RESPOND_SYSTEM), *prior_msgs[-6:], HumanMessage(content=respond_content)]
     )
 
     try:
         cleaned = _strip_code_fences(
-            response.content if hasattr(response, "content") else str(response)
+            str(response.content) if hasattr(response, "content") else str(response)
         )
         response_dict: dict[str, Any] = json.loads(cleaned)
     except (json.JSONDecodeError, AttributeError):

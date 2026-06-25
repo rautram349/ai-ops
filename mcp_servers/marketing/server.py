@@ -17,7 +17,6 @@ Run this server::
 from __future__ import annotations
 
 import os
-from typing import Optional
 
 import psycopg2.extras
 from dotenv import load_dotenv
@@ -40,11 +39,11 @@ _PORT = int(os.environ.get("MCP_MARKETING_PORT", "5012"))
 @mcp.tool()
 def get_campaign_status(
     start_date: str,
-    end_date: Optional[str] = None,
+    end_date: str | None = None,
     status_filter: str = "all",
 ) -> dict:
     """Get status of all campaigns overlapping a date range."""
-    start_date = safe_date(start_date)  # type: ignore[assignment]
+    start_date = safe_date(start_date)
     end = safe_date(end_date) or start_date
 
     status_clause = ""
@@ -92,12 +91,12 @@ def get_campaign_status(
 @mcp.tool()
 def get_campaign_performance(
     start_date: str,
-    end_date: Optional[str] = None,
-    campaign_id: Optional[str] = None,
-    channel: Optional[str] = None,
+    end_date: str | None = None,
+    campaign_id: str | None = None,
+    channel: str | None = None,
 ) -> dict:
     """Get detailed performance metrics for campaigns in a date range."""
-    start_date = safe_date(start_date)  # type: ignore[assignment]
+    start_date = safe_date(start_date)
     end = safe_date(end_date) or start_date
 
     filters = ["cdm.date BETWEEN %(start)s AND %(end)s"]
@@ -145,10 +144,10 @@ def get_campaign_performance(
 @mcp.tool()
 def get_missed_promotions(
     start_date: str,
-    end_date: Optional[str] = None,
+    end_date: str | None = None,
 ) -> dict:
     """Find orders placed during active campaigns that received no discount."""
-    start_date = safe_date(start_date)  # type: ignore[assignment]
+    start_date = safe_date(start_date)
     end = safe_date(end_date) or start_date
 
     sql = """
@@ -181,10 +180,10 @@ def get_missed_promotions(
 @mcp.tool()
 def get_channel_performance(
     start_date: str,
-    end_date: Optional[str] = None,
+    end_date: str | None = None,
 ) -> dict:
     """Compare performance across marketing channels for a date range."""
-    start_date = safe_date(start_date)  # type: ignore[assignment]
+    start_date = safe_date(start_date)
     end = safe_date(end_date) or start_date
 
     sql = """
@@ -268,9 +267,9 @@ def pause_campaign(
 def apply_discount(
     discount_percent: float,
     duration_days: int,
-    product_ids: Optional[list[str]] = None,
-    category: Optional[str] = None,
-    reason: Optional[str] = None,
+    product_ids: list[str] | None = None,
+    category: str | None = None,
+    reason: str | None = None,
 ) -> dict:
     """Apply a temporary discount to specified products.  REQUIRES APPROVAL.
 

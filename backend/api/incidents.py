@@ -1,8 +1,8 @@
 """Incident history router.
 
 Endpoints:
-    GET /api/incidents              – list incidents with optional filters
-    GET /api/incidents/{id}         – get a single incident with full detail
+    GET /api/incidents              - list incidents with optional filters
+    GET /api/incidents/{id}         - get a single incident with full detail
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from pydantic import BaseModel, field_serializer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.connection import get_db
-from backend.db.repositories.approvals import IncidentRepository
+from backend.db.repositories import IncidentRepository
 
 router = APIRouter(prefix="/api/incidents", tags=["incidents"])
 
@@ -77,7 +77,7 @@ async def list_incidents(
         A list of incident summaries ordered by date descending.
     """
     repo = IncidentRepository(db)
-    incidents = await repo.list(
+    incidents = await repo.list_incidents(
         incident_type=incident_type,
         start_date=start_date,
         end_date=end_date,

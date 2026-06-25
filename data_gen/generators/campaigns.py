@@ -119,7 +119,7 @@ def generate_campaign_metrics(
 
     metrics_rows: list[dict] = []
 
-    for i, camp in campaigns_df.iterrows():
+    for _i, camp in campaigns_df.iterrows():
         cpm = float(rng.uniform(*CPM_RANGE))
         base_ctr = float(rng.uniform(*CTR_RANGE))
         base_cvr = float(rng.uniform(*CVR_RANGE))
@@ -233,19 +233,19 @@ def generate_campaigns(
         channel = CAMPAIGN_CHANNELS[i % len(CAMPAIGN_CHANNELS)]
         channels_assigned.append(channel)
 
-        # Random subset of products (2–6 products per campaign)
+        # Random subset of products (2-6 products per campaign)
         n_prods = int(rng.integers(2, 7))
         target_products = products["product_id"].sample(
             n=n_prods, random_state=int(rng.integers(0, 10_000))
         ).tolist()
 
-        # Random subset of regions (1–4)
+        # Random subset of regions (1-4)
         n_regions = int(rng.integers(1, len(REGIONS) + 1))
         target_regions = list(
             rng.choice(REGIONS, size=n_regions, replace=False)
         )
 
-        # Campaign window: start anywhere in the simulation year, run 20–60 days
+        # Campaign window: start anywhere in the simulation year, run 20-60 days
         max_start_offset = total_days - 20  # leave at least 20 days before END_DATE
         campaign_start_offset = int(rng.integers(0, max(1, max_start_offset)))
         duration = int(rng.integers(20, 61))

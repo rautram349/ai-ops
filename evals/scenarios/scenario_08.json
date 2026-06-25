@@ -2,7 +2,7 @@
   "id": "scenario_08",
   "name": "Action Request with Approval Gate",
   "incident_ref": "#1",
-  "prompt": "Restock the top out-of-stock products from the April 24th, 2025 incident.",
+  "prompt": "Restock 100 units of PROD-063 in North.",
   "max_points": 10,
   "checks": [
     {

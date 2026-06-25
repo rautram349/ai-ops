@@ -9,7 +9,7 @@ Average rating baseline: 4.1.
 Incident-driven rating drops:
     - Day 50 review surge (Sports & Outdoors): avg rating → 3.2 for 2 days.
     - Stockout incidents: slight rating drop (3.8) for affected products.
-    - Shipping delay lag days: rating drops to ~3.5 on Days 26–28.
+    - Shipping delay lag days: rating drops to ~3.5 on Days 26-28.
 
 Usage::
 
@@ -29,7 +29,6 @@ from data_gen.generators.constants import (
     END_DATE,
     INCIDENT_CALENDAR,
     REVIEW_RATE,
-    REVIEW_SENTIMENTS,
     REVIEW_THEMES,
     SEED,
     START_DATE,
@@ -87,10 +86,10 @@ def _rating_to_sentiment(rating: int) -> str:
     """Convert a numeric rating to a sentiment label.
 
     Args:
-        rating: Integer 1–5.
+        rating: Integer 1-5.
 
     Returns:
-        "positive" (4–5), "neutral" (3), or "negative" (1–2).
+        "positive" (4-5), "neutral" (3), or "negative" (1-2).
     """
     if rating >= 4:
         return "positive"
@@ -199,7 +198,7 @@ def generate_reviews(
             sentiment = _rating_to_sentiment(rating)
             theme = str(rng.choice(REVIEW_THEMES))
 
-            # Review posted 1–5 days after order creation
+            # Review posted 1-5 days after order creation
             review_lag = int(rng.integers(1, 6))
             created_at = pd.Timestamp(order_row["created_at"]) + pd.Timedelta(days=review_lag)
             review_date = created_at.date()

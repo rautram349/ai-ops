@@ -19,7 +19,7 @@ if str(_ROOT) not in sys.path:
 
 # ── Skip marker ───────────────────────────────────────────────────────────────
 
-def pytest_configure(config):
+def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
         "markers",
         "integration: marks tests that require live MCP servers and DB",

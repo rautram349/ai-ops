@@ -24,11 +24,11 @@ from backend.core.config import settings
 def get_llm() -> AzureChatOpenAI:
     """Return a cached AzureChatOpenAI instance pointed at EPAM DIAL."""
     return AzureChatOpenAI(
-        openai_api_version=settings.epam_dial_api_version,
+        api_version=settings.epam_dial_api_version,
         azure_deployment=settings.epam_dial_deployment,
         azure_endpoint=settings.epam_dial_endpoint,
         api_key=settings.epam_dial_api_key,  # type: ignore[arg-type]
         temperature=settings.llm_temperature,
-        request_timeout=120,
+        timeout=120,
         max_retries=1,
     )

@@ -5,9 +5,9 @@ the complaint model in docs/specs/03_data_incident_spec.md section 3.6.
 
 Key behaviours:
     - Baseline complaint rate: 2 % of daily orders.
-    - Shipping-delay incident (Day 24) → complaint spike Day 25–27 (lag +1 to +3).
+    - Shipping-delay incident (Day 24) → complaint spike Day 25-27 (lag +1 to +3).
     - Checkout bug incident (Day 40) → payment-category complaint spike same day.
-    - Review surge / product defect (Day 50) → product_quality spike Day 50–52.
+    - Review surge / product defect (Day 50) → product_quality spike Day 50-52.
     - Stockout incidents → availability category spike same day.
 
 Usage::
@@ -122,7 +122,7 @@ def generate_support_tickets(
         raise ValueError("products DataFrame is empty")
 
     rng = np.random.default_rng(seed)
-    fake = Faker()
+    Faker()
     Faker.seed(seed)
 
     _start = start_date or START_DATE
@@ -220,7 +220,7 @@ def generate_support_tickets(
             minute = int(rng.integers(0, 60))
             created_at = pd.Timestamp(current_date) + pd.Timedelta(hours=hour, minutes=minute)
 
-            # Resolution: 70 % resolved within 1–5 days
+            # Resolution: 70 % resolved within 1-5 days
             resolved_at = None
             status = "open"
             if rng.random() < 0.70:

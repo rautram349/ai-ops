@@ -26,7 +26,8 @@ import contextlib
 import datetime
 import os
 import threading
-from typing import Any
+from collections.abc import Iterator
+from typing import Any, overload
 
 import psycopg2
 import psycopg2.extras
@@ -70,7 +71,7 @@ def release_conn(conn: psycopg2.extensions.connection) -> None:
 
 
 @contextlib.contextmanager
-def db_connection():
+def db_connection() -> Iterator[psycopg2.extensions.connection]:
     """Context manager that borrows and returns a connection automatically."""
     conn = get_conn()
     try:
@@ -99,31 +100,12 @@ def execute_query(
         return _run_query(c, sql, params)
 
 
-def execute_write(
-    sql: str,
-    params: tuple | dict | None = None,
-    conn: psycopg2.extensions.connection | None = None,
-) -> int:
-    """Execute an INSERT / UPDATE / DELETE and commit.  Returns rowcount.
-
-    If *conn* is provided it is used directly (no pool checkout / commit).
-    The caller is then responsible for committing.
-    """
-    if conn is not None:
-        with conn.cursor() as cur:
-            cur.execute(sql, params)
-            return cur.rowcount
-
-    with db_connection() as c:
-        with c.cursor() as cur:
-            cur.execute(sql, params)
-            rowcount = cur.rowcount
-        c.commit()
-        return rowcount
-
-
 # ── helpers ──────────────────────────────────────────────────────────────────
 
+@overload
+def safe_date(date_str: str) -> str: ...
+@overload
+def safe_date(date_str: None) -> None: ...
 def safe_date(date_str: str | None) -> str | None:
     """Clamp a date string to a valid calendar date.
 

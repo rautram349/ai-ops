@@ -221,7 +221,7 @@ def check_incident_visibility(orders: pd.DataFrame) -> None:
     orders["created_date"] = pd.to_datetime(orders["created_date"]).dt.date
     daily = orders.groupby("created_date")["order_id"].count().reset_index()
     daily.columns = ["date", "order_count"]
-    daily_map = dict(zip(daily["date"], daily["order_count"]))
+    daily_map = dict(zip(daily["date"], daily["order_count"], strict=False))
 
     # Build a set of all incident dates so they can be excluded from baselines.
     all_incident_dates: set[date] = {
@@ -275,8 +275,8 @@ def check_lagged_signals(
     """Rule: Complaint/return spikes appear AFTER shipping-delay incident (Day 24).
 
     Shipping delay on Day 24 (Feb 24):
-        - Complaints should spike Day 25–27.
-        - Returns should spike Day 27–29.
+        - Complaints should spike Day 25-27.
+        - Returns should spike Day 27-29.
 
     Args:
         support: support_tickets DataFrame.
@@ -289,7 +289,7 @@ def check_lagged_signals(
     support["created_date"] = pd.to_datetime(support["created_date"]).dt.date
     returns["requested_date"] = pd.to_datetime(returns["requested_date"]).dt.date
 
-    # Complaint spike: days 25–27
+    # Complaint spike: days 25-27
     spike_range = [
         incident_date + timedelta(days=d) for d in range(1, 4)
     ]
@@ -301,7 +301,7 @@ def check_lagged_signals(
     pre_complaints = support[support["created_date"].isin(pre_range)].shape[0]
 
     check(
-        "Shipping-delay complaint spike on Days 25–27 (lagged)",
+        "Shipping-delay complaint spike on Days 25-27 (lagged)",
         spike_complaints >= pre_complaints,
         detail=(
             f"spike window={spike_complaints} tickets  "
@@ -309,7 +309,7 @@ def check_lagged_signals(
         ),
     )
 
-    # Return spike: days 27–29
+    # Return spike: days 27-29
     return_spike_range = [
         incident_date + timedelta(days=d) for d in range(3, 6)
     ]
@@ -320,7 +320,7 @@ def check_lagged_signals(
     pre_returns = returns[returns["requested_date"].isin(return_pre_range)].shape[0]
 
     check(
-        "Shipping-delay return spike on Days 27–29 (lagged)",
+        "Shipping-delay return spike on Days 27-29 (lagged)",
         spike_returns > pre_returns,
         detail=(
             f"spike window={spike_returns} returns  "
@@ -558,9 +558,9 @@ def main() -> None:
     campaigns = data["campaigns"]
     campaign_metrics = data["campaign_daily_metrics"]
     support = data["support_tickets"]
-    reviews = data["reviews"]
+    data["reviews"]
     returns = data["returns_refunds"]
-    traffic = data["daily_traffic"]
+    data["daily_traffic"]
 
     # ------------------------------------------------------------------
     # Spec section 8 rules

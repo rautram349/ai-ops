@@ -11,8 +11,7 @@ _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from ai_ops_engine.graph.builder import run_graph
-
+from ai_ops_engine.graph.builder import run_graph  # noqa: E402
 
 IRRELEVANT_CASES = [
     "Write me a poem about the ocean",

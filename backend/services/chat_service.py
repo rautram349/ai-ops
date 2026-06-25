@@ -10,8 +10,8 @@ import structlog
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.db.repositories import ConversationRepository, ApprovalRepository, IncidentRepository
-from ai_ops_engine.graph.builder import run_graph
+from backend.db.repositories import ApprovalRepository, ConversationRepository, IncidentRepository
+from backend.services.graph_runner import DefaultGraphRunner, GraphRunner
 
 logger = structlog.get_logger(__name__)
 
@@ -22,6 +22,7 @@ _INTENT_DOMAINS: dict[str, list[str]] = {
     "support_analysis": ["support"],
     "multi_domain": ["sales", "inventory", "marketing", "support"],
     "unknown": [],
+    "action": [],
 }
 
 
@@ -32,9 +33,12 @@ class ChatService:
         session: An open async SQLAlchemy session.
     """
 
-    def __init__(self, session: AsyncSession) -> None:
+    def __init__(
+        self, session: AsyncSession, graph_runner: GraphRunner | None = None
+    ) -> None:
         self._session = session
         self._conv_repo = ConversationRepository(session)
+        self._graph_runner: GraphRunner = graph_runner or DefaultGraphRunner()
 
     async def _create_incidents_from_findings(
         self,
@@ -94,24 +98,61 @@ class ChatService:
         if created_count:
             logger.info(log_event, count=created_count)
 
-    async def handle(
+    async def _update_incident_with_actions(
+        self,
+        *,
+        conversation_id: uuid.UUID,
+        actions_taken: list[str],
+    ) -> None:
+        """Backfill the conversation's incident with actions taken by the graph."""
+        if not actions_taken:
+            return
+
+        try:
+            incident_repo = IncidentRepository(self._session)
+            incidents = await incident_repo.find_by_conversation(
+                conversation_id, limit=1
+            )
+            if not incidents:
+                return
+
+            action_records = [
+                {"action_type": a, "tool": a, "server": "", "result": None, "success": True}
+                for a in actions_taken
+            ]
+            outcome = "; ".join(actions_taken)
+            await incident_repo.update_after_execution(
+                incident=incidents[0],
+                actions_taken=action_records,
+                outcome_summary=f"Graph executed: {outcome}",
+                resolved=True,
+            )
+        except Exception as exc:
+            logger.warning("incident_update_actions_failed", error=str(exc))
+
+    async def _setup_conversation(
         self,
         message: str,
         conversation_id: uuid.UUID | None,
-    ) -> dict[str, Any]:
-        """Process a user message and return a structured investigation result."""
+        *,
+        log_suffix: str = "",
+    ) -> tuple[uuid.UUID, Any, list[dict]]:
+        """Create or resume a conversation, add the user message, return history."""
         if conversation_id is None:
-            convo = await self._conv_repo.create(
+            convo: Any = await self._conv_repo.create(
                 title=message[:80] if len(message) > 80 else message
             )
             conversation_id = convo.conversation_id
-            logger.info("new_conversation", conversation_id=str(conversation_id))
+            logger.info("new_conversation" + log_suffix, conversation_id=str(conversation_id))
         else:
             convo = await self._conv_repo.get(conversation_id)
             if convo is None:
                 convo = await self._conv_repo.create()
                 conversation_id = convo.conversation_id
-                logger.warning("unknown_conversation_id_reset", requested=str(conversation_id))
+                logger.warning(
+                    "unknown_conversation_id_reset" + log_suffix,
+                    requested=str(conversation_id),
+                )
 
         user_msg = await self._conv_repo.add_message(
             conversation_id, role="user", content=message
@@ -130,19 +171,16 @@ class ChatService:
                     content = m.content
                 conversation_history.append({"role": m.role, "content": content})
 
-        try:
-            graph_result = await run_graph(
-                user_query=message,
-                conversation_history=conversation_history,
-            )
-        except Exception as exc:
-            error_msg = str(exc)
-            logger.error("graph_error", conversation_id=str(conversation_id), error=error_msg)
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"AI-ops engine error: {error_msg}",
-            ) from exc
+        return conversation_id, user_msg, conversation_history
 
+    async def _persist_graph_result(
+        self,
+        *,
+        conversation_id: uuid.UUID,
+        graph_result: dict[str, Any],
+        log_suffix: str = "",
+    ) -> tuple[dict[str, Any], Any]:
+        """Persist approvals, incidents, and assistant message; commit session."""
         response_details = graph_result.get("response_details", {})
 
         pending_approvals = graph_result.get("pending_approvals", [])
@@ -170,10 +208,15 @@ class ChatService:
                     conversation_id=conversation_id,
                     intent_val=graph_result.get("intent", "unknown"),
                     findings=findings,
-                    log_event="incidents_created",
+                    log_event="incidents_created" + log_suffix,
                 )
             except Exception as inc_exc:
-                logger.warning("incident_creation_failed", error=str(inc_exc))
+                logger.warning("incident_creation_failed" + log_suffix, error=str(inc_exc))
+
+        await self._update_incident_with_actions(
+            conversation_id=conversation_id,
+            actions_taken=response_details.get("actions_taken", []),
+        )
 
         assistant_msg = await self._conv_repo.add_message(
             conversation_id,
@@ -183,6 +226,36 @@ class ChatService:
         )
         await self._conv_repo.touch(conversation_id)
         await self._session.commit()
+
+        return response_details, assistant_msg
+
+    async def handle(
+        self,
+        message: str,
+        conversation_id: uuid.UUID | None,
+    ) -> dict[str, Any]:
+        """Process a user message and return a structured investigation result."""
+        conversation_id, _, conversation_history = await self._setup_conversation(
+            message, conversation_id
+        )
+
+        try:
+            graph_result = await self._graph_runner.run(
+                user_query=message,
+                conversation_history=conversation_history,
+            )
+        except Exception as exc:
+            error_msg = str(exc)
+            logger.error("graph_error", conversation_id=str(conversation_id), error=error_msg)
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"AI-ops engine error: {error_msg}",
+            ) from exc
+
+        response_details, assistant_msg = await self._persist_graph_result(
+            conversation_id=conversation_id,
+            graph_result=graph_result,
+        )
 
         logger.info(
             "chat_handled",
@@ -204,39 +277,14 @@ class ChatService:
         conversation_id: uuid.UUID | None,
     ) -> dict[str, Any]:
         """Set up conversation state before opening the SSE stream."""
-        from langchain_core.messages import AIMessage as _AIMsg, HumanMessage as _HMsg
+        from langchain_core.messages import AIMessage as _AIMsg
+        from langchain_core.messages import HumanMessage as _HMsg
 
-        if conversation_id is None:
-            convo = await self._conv_repo.create(
-                title=message[:80] if len(message) > 80 else message
-            )
-            conversation_id = convo.conversation_id
-            logger.info("new_conversation_stream", conversation_id=str(conversation_id))
-        else:
-            convo = await self._conv_repo.get(conversation_id)
-            if convo is None:
-                convo = await self._conv_repo.create()
-                conversation_id = convo.conversation_id
-                logger.warning("unknown_conversation_id_reset_stream", requested=str(conversation_id))
-
-        user_msg = await self._conv_repo.add_message(
-            conversation_id, role="user", content=message
+        conversation_id, user_msg, conversation_history = await self._setup_conversation(
+            message, conversation_id, log_suffix="_stream"
         )
-        await self._conv_repo.touch(conversation_id)
 
-        convo_with_msgs = await self._conv_repo.get_with_messages(conversation_id)
-        conversation_history: list[dict] = []
-        if convo_with_msgs and convo_with_msgs.messages:
-            for m in convo_with_msgs.messages:
-                if str(m.message_id) == str(user_msg.message_id):
-                    continue
-                if m.role == "assistant" and m.structured_response:
-                    content = m.structured_response.get("summary", m.content)
-                else:
-                    content = m.content
-                conversation_history.append({"role": m.role, "content": content})
-
-        lc_messages = []
+        lc_messages: list[Any] = []
         for msg in conversation_history[-10:]:
             if msg["role"] == "user":
                 lc_messages.append(_HMsg(content=msg["content"]))
@@ -252,6 +300,7 @@ class ChatService:
             "pending_approvals":      [],
             "needs_write":            False,
             "approved":               False,
+            "action_plan_blocker":     None,
             "response_summary":       "",
             "response_details":       {},
             "error":                  None,
@@ -296,46 +345,11 @@ class ChatService:
             "memory_matches":     final_state.get("memory_matches", []),
         }
 
-        response_details = graph_result.get("response_details", {})
-
-        pending_approvals = graph_result.get("pending_approvals", [])
-        if pending_approvals:
-            approval_repo = ApprovalRepository(self._session)
-            enriched_approvals = []
-            for a in pending_approvals:
-                db_approval = await approval_repo.create_approval(
-                    conversation_id=conversation_id,
-                    action_type=a.get("tool", "unknown"),
-                    target_entities=a.get("arguments", {}),
-                    reason=a.get("reason", ""),
-                    expected_impact=None,
-                    risk_level=a.get("risk_level", "medium"),
-                    reversible=bool(a.get("reversible", True)),
-                )
-                enriched_approvals.append({**dict(a), "approval_id": str(db_approval.approval_id)})
-            response_details = dict(response_details)
-            response_details["pending_approvals"] = enriched_approvals
-
-        findings = response_details.get("findings", [])
-        if findings:
-            try:
-                await self._create_incidents_from_findings(
-                    conversation_id=conversation_id,
-                    intent_val=graph_result.get("intent", "unknown"),
-                    findings=findings,
-                    log_event="incidents_created_stream",
-                )
-            except Exception as inc_exc:
-                logger.warning("incident_creation_failed_stream", error=str(inc_exc))
-
-        assistant_msg = await self._conv_repo.add_message(
-            conversation_id,
-            role="assistant",
-            content=graph_result["response_summary"],
-            structured_response=response_details,
+        response_details, assistant_msg = await self._persist_graph_result(
+            conversation_id=conversation_id,
+            graph_result=graph_result,
+            log_suffix="_stream",
         )
-        await self._conv_repo.touch(conversation_id)
-        await self._session.commit()
 
         logger.info(
             "chat_stream_finalized",

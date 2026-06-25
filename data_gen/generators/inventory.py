@@ -23,8 +23,8 @@ import pandas as pd
 from data_gen.generators.constants import (
     END_DATE,
     INCIDENT_CALENDAR,
-    REGIONS,
     REGION_WEIGHTS,
+    REGIONS,
     SEED,
     START_DATE,
 )
@@ -128,7 +128,7 @@ def generate_inventory(
             if affected:
                 stockout_map[inc_date] = affected
                 hours = float(inc["stockout_hours"])
-                stockout_hours_map[inc_date] = {pid: hours for pid in affected}
+                stockout_hours_map[inc_date] = dict.fromkeys(affected, hours)
 
     # Pre-join order_items with orders to get date per item.
     # order_items has order_id; we need created_date.

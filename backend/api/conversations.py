@@ -1,20 +1,20 @@
 """Conversation management router.
 
 Endpoints:
-    GET    /api/conversations           – list active conversations
-    GET    /api/conversations/{id}      – get conversation with messages
-    PATCH  /api/conversations/{id}      – update conversation title
-    DELETE /api/conversations/{id}      – archive a conversation
+    GET    /api/conversations           - list active conversations
+    GET    /api/conversations/{id}      - get conversation with messages
+    PATCH  /api/conversations/{id}      - update conversation title
+    DELETE /api/conversations/{id}      - archive a conversation
 """
 
 from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, Field, field_serializer
+from pydantic import BaseModel, StringConstraints, field_serializer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.db.connection import get_db
@@ -59,7 +59,7 @@ class ConversationDetailOut(ConversationOut):
 
 
 class ConversationTitleUpdate(BaseModel):
-    title: str = Field(..., min_length=1, max_length=200, strip_whitespace=True)
+    title: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=200)]
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────

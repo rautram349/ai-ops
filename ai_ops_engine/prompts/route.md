@@ -5,6 +5,10 @@ Classify the user's request into EXACTLY ONE of these intent labels:
   marketing_performance — campaigns, ROAS, discounts, channel performance
   support_analysis      — complaints, returns, refunds, review sentiment, creating support tickets
   multi_domain          — spans two or more of the above domains
+  action                — explicit write operations requested by the user: restock products, apply discounts,
+                          pause campaigns, create support tickets, approve/reject pending actions.
+                          Detection clue: imperative verbs like "restock", "apply", "pause", "create", "go ahead",
+                          "fix it", "make it happen", or explicit approval commands like "approve", "reject".
   memory_recall         — ONLY use this when the user is EXPLICITLY asking about past incidents or history
                           using phrases like: "has this happened before", "last time", "what did we do",
                           "did this happen before", "previous incidents", "historical pattern",

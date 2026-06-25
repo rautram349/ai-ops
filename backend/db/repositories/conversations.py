@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from sqlalchemy import select, update
@@ -97,7 +97,7 @@ class ConversationRepository:
         await self._session.execute(
             update(Conversation)
             .where(Conversation.conversation_id == conversation_id)
-            .values(last_activity=datetime.now(timezone.utc).replace(tzinfo=None))
+            .values(last_activity=datetime.now(UTC).replace(tzinfo=None))
         )
 
     async def archive(self, conversation_id: uuid.UUID) -> None:

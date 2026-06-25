@@ -15,10 +15,8 @@ Run this server::
 
 from __future__ import annotations
 
-import math
 import os
 import statistics
-from typing import Optional
 
 from dotenv import load_dotenv
 from fastmcp import FastMCP
@@ -93,12 +91,12 @@ def _sales_agg(start: str, end: str, region: str | None, category: str | None) -
 @mcp.tool()
 def get_sales_summary(
     start_date: str,
-    end_date: Optional[str] = None,
-    region: Optional[str] = None,
-    category: Optional[str] = None,
+    end_date: str | None = None,
+    region: str | None = None,
+    category: str | None = None,
 ) -> dict:
     """Get sales summary metrics for a date or date range."""
-    start_date = safe_date(start_date)  # type: ignore[assignment]
+    start_date = safe_date(start_date)
     end = safe_date(end_date) or start_date
 
     agg = _sales_agg(start_date, end, region, category)
@@ -147,14 +145,13 @@ def compare_sales(
     period_a_end: str,
     period_b_start: str,
     period_b_end: str,
-    dimensions: Optional[list[str]] = None,
+    dimensions: list[str] | None = None,
 ) -> dict:
     """Compare sales metrics between two time periods."""
-    period_a_start = safe_date(period_a_start)  # type: ignore[assignment]
-    period_a_end   = safe_date(period_a_end)    # type: ignore[assignment]
-    period_b_start = safe_date(period_b_start)  # type: ignore[assignment]
-    period_b_end   = safe_date(period_b_end)    # type: ignore[assignment]
-
+    period_a_start = safe_date(period_a_start)
+    period_a_end = safe_date(period_a_end)
+    period_b_start = safe_date(period_b_start)
+    period_b_end = safe_date(period_b_end)
     # Normalize: period_a is always the earlier/baseline period so that
     # positive change_pct means the later period (period_b) improved.
     if (period_a_start or "") > (period_b_start or ""):
@@ -252,12 +249,12 @@ def compare_sales(
 @mcp.tool()
 def get_revenue_by_product(
     start_date: str,
-    end_date: Optional[str] = None,
+    end_date: str | None = None,
     top_n: int = 10,
     sort_by: str = "revenue",
 ) -> dict:
     """Get revenue breakdown by product for a date range."""
-    start_date = safe_date(start_date)  # type: ignore[assignment]
+    start_date = safe_date(start_date)
     end = safe_date(end_date) or start_date
 
     sort_col = {
@@ -293,10 +290,10 @@ def get_revenue_by_product(
 @mcp.tool()
 def get_revenue_by_region(
     start_date: str,
-    end_date: Optional[str] = None,
+    end_date: str | None = None,
 ) -> dict:
     """Get revenue breakdown by region for a date range."""
-    start_date = safe_date(start_date)  # type: ignore[assignment]
+    start_date = safe_date(start_date)
     end = safe_date(end_date) or start_date
 
     sql = """
@@ -326,8 +323,7 @@ def detect_anomaly(
     lookback_days: int = 14,
 ) -> dict:
     """Detect if a metric value is anomalous compared to recent history via z-score."""
-    date = safe_date(date)  # type: ignore[assignment]
-    # Map metric → SQL expression over daily_traffic or orders
+    date = safe_date(date)    # Map metric → SQL expression over daily_traffic or orders
     metric_map = {
         "revenue":     ("SELECT created_date AS d, SUM(final_value) AS v FROM orders GROUP BY created_date", "orders"),
         "orders":      ("SELECT created_date AS d, COUNT(*) AS v FROM orders GROUP BY created_date", "orders"),

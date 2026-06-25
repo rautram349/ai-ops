@@ -15,7 +15,6 @@ REFLECT_SYSTEM = load_prompt("reflect")
 PLAN_SYSTEM = load_prompt("plan")
 RESPOND_SYSTEM = load_prompt("respond")
 UNKNOWN_SYSTEM = load_prompt("unknown")
-MEMORY_SYSTEM = load_prompt("memory")
 
 # ── Agent prompts ─────────────────────────────────────────────────────────────
 SALES_SYSTEM = load_prompt("sales")
@@ -24,17 +23,16 @@ MARKETING_SYSTEM = load_prompt("marketing")
 SUPPORT_SYSTEM = load_prompt("support")
 
 __all__ = [
-    "ROUTE_SYSTEM",
-    "RECALL_KEYWORD_SYSTEM",
-    "PLAN_DOMAINS_SYSTEM",
-    "SYNTHESIZE_SYSTEM",
-    "REFLECT_SYSTEM",
-    "PLAN_SYSTEM",
-    "RESPOND_SYSTEM",
-    "UNKNOWN_SYSTEM",
-    "MEMORY_SYSTEM",
-    "SALES_SYSTEM",
     "INVENTORY_SYSTEM",
     "MARKETING_SYSTEM",
+    "PLAN_DOMAINS_SYSTEM",
+    "PLAN_SYSTEM",
+    "RECALL_KEYWORD_SYSTEM",
+    "REFLECT_SYSTEM",
+    "RESPOND_SYSTEM",
+    "ROUTE_SYSTEM",
+    "SALES_SYSTEM",
     "SUPPORT_SYSTEM",
+    "SYNTHESIZE_SYSTEM",
+    "UNKNOWN_SYSTEM",
 ]

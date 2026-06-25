@@ -16,7 +16,6 @@ Run this server::
 from __future__ import annotations
 
 import os
-from typing import Optional
 
 import psycopg2.extras
 from dotenv import load_dotenv
@@ -42,12 +41,12 @@ _VALID_SEVERITIES = {"low", "medium", "high", "critical"}
 @mcp.tool()
 def get_complaint_summary(
     start_date: str,
-    end_date: Optional[str] = None,
-    category: Optional[str] = None,
-    severity: Optional[str] = None,
+    end_date: str | None = None,
+    category: str | None = None,
+    severity: str | None = None,
 ) -> dict:
     """Get summary of customer complaints for a date range."""
-    start_date = safe_date(start_date)  # type: ignore[assignment]
+    start_date = safe_date(start_date)
     end = safe_date(end_date) or start_date
 
     filters = ["st.created_date BETWEEN %(start)s AND %(end)s"]
@@ -124,11 +123,11 @@ def get_complaint_summary(
 @mcp.tool()
 def get_issue_clusters(
     start_date: str,
-    end_date: Optional[str] = None,
+    end_date: str | None = None,
     min_cluster_size: int = 3,
 ) -> dict:
     """Identify clusters of similar issues from support tickets grouped by theme."""
-    start_date = safe_date(start_date)  # type: ignore[assignment]
+    start_date = safe_date(start_date)
     end = safe_date(end_date) or start_date
 
     sql = """
@@ -179,10 +178,10 @@ def get_issue_clusters(
 @mcp.tool()
 def get_refund_return_summary(
     start_date: str,
-    end_date: Optional[str] = None,
+    end_date: str | None = None,
 ) -> dict:
     """Get summary of refunds and returns for a date range."""
-    start_date = safe_date(start_date)  # type: ignore[assignment]
+    start_date = safe_date(start_date)
     end = safe_date(end_date) or start_date
 
     sql = """
@@ -232,12 +231,12 @@ def get_refund_return_summary(
 @mcp.tool()
 def get_review_sentiment(
     start_date: str,
-    end_date: Optional[str] = None,
-    product_ids: Optional[list[str]] = None,
-    category: Optional[str] = None,
+    end_date: str | None = None,
+    product_ids: list[str] | None = None,
+    category: str | None = None,
 ) -> dict:
     """Get review sentiment analysis for a date range."""
-    start_date = safe_date(start_date)  # type: ignore[assignment]
+    start_date = safe_date(start_date)
     end = safe_date(end_date) or start_date
 
     filters = ["r.created_date BETWEEN %(start)s AND %(end)s"]
@@ -308,8 +307,6 @@ def create_support_ticket(
     severity: str,
     subject: str,
     description: str,
-    affected_products: Optional[list[str]] = None,
-    affected_regions: Optional[list[str]] = None,
 ) -> dict:
     """Create a support ticket for an identified issue.  REQUIRES APPROVAL."""
     if category not in _VALID_CATEGORIES:

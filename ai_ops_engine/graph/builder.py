@@ -6,7 +6,7 @@ import logging
 from collections.abc import AsyncIterator
 from typing import Any
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send
 
@@ -27,17 +27,18 @@ from ai_ops_engine.graph.nodes import (
     route,
     synthesize,
 )
-from ai_ops_engine.graph.state import AgentState
-from ai_ops_engine.prompts import UNKNOWN_SYSTEM as _UNKNOWN_SYSTEM
+from ai_ops_engine.graph.domains import DOMAIN_TO_AGENT, SERVER_TO_DOMAIN
+from ai_ops_engine.graph.nodes.respond_synthetic import (
+    _respond_action_blocked,
+    _respond_guardrail,
+    _respond_pending,
+    _respond_unknown,
+)
+from ai_ops_engine.graph.state import AgentState, PendingApproval
 
 logger = logging.getLogger(__name__)
 
-_DOMAIN_AGENT_MAP: dict[str, str] = {
-    "sales": "sales_agent",
-    "inventory": "inventory_agent",
-    "marketing": "marketing_agent",
-    "support": "support_agent",
-}
+_DOMAIN_AGENT_MAP = DOMAIN_TO_AGENT
 
 
 def _after_route(state: AgentState) -> str:
@@ -49,84 +50,9 @@ def _after_route(state: AgentState) -> str:
         return "respond_unknown"
     if intent == "memory_recall":
         return "recall"
+    if intent == "action":
+        return "plan"
     return "plan_domains"
-
-
-def _respond_guardrail(state: AgentState) -> dict:
-    """Deterministic refusal for prompts outside the AI-ops scope."""
-    category = state.get("guardrail_category", "irrelevant")
-    summary = (
-        "I can’t help with that request because it’s outside the AI-ops operational scope. "
-        "I can help investigate sales, inventory, marketing, support, incidents, and approval workflows."
-    )
-    if category == "prompt_injection":
-        summary = (
-            "I can’t help with requests to override instructions, reveal hidden prompts, or access secrets. "
-            "Ask me about sales, inventory, marketing, support, incidents, or operational actions instead."
-        )
-
-    return {
-        "response_summary": summary,
-        "response_details": {
-            "summary": summary,
-            "findings": [
-                {
-                    "title": "Prompt blocked by scope guardrail",
-                    "detail": state.get("guardrail_reason", "The prompt is outside the supported AI-ops domain."),
-                    "severity": "info",
-                }
-            ],
-            "recommendations": [
-                {
-                    "action_type": "ask_operational_question",
-                    "reason": "Try asking about revenue anomalies, stockouts, campaign performance, support complaints, incidents, or approvals.",
-                    "risk_level": "low",
-                    "reversible": True,
-                }
-            ],
-            "actions_taken": [],
-            "pending_approvals": [],
-        },
-        "messages": [AIMessage(content=summary)],
-    }
-
-
-async def _respond_unknown(state: AgentState) -> dict:
-    """Use LLM to generate a smart, context-aware conversational reply."""
-    from ai_ops_engine.llm import get_llm
-
-    llm = get_llm()
-    query = state["user_query"]
-
-    _SKIP_PREFIXES = ("[route]", "[diagnose]", "[plan]", "[execute]")
-    prior_msgs = [
-        m
-        for m in state.get("messages", [])
-        if isinstance(m, (HumanMessage, AIMessage))
-        and not m.content.startswith(_SKIP_PREFIXES)
-        and m.content != query
-    ]
-
-    llm_messages = (
-        [SystemMessage(content=_UNKNOWN_SYSTEM)]
-        + prior_msgs[-6:]
-        + [HumanMessage(content=query)]
-    )
-
-    response = await llm.ainvoke(llm_messages)
-    reply = response.content if hasattr(response, "content") else str(response)
-
-    return {
-        "response_summary": reply,
-        "response_details": {
-            "summary": reply,
-            "findings": [],
-            "recommendations": [],
-            "actions_taken": [],
-            "pending_approvals": [],
-        },
-        "messages": [AIMessage(content=reply)],
-    }
 
 
 def _after_reflect(state: AgentState) -> str | list[Send]:
@@ -134,12 +60,7 @@ def _after_reflect(state: AgentState) -> str | list[Send]:
     hints = state.get("reflection_tool_hints", []) or []
     if hints:
         reinvestigate_domains: set[str] = set()
-        server_to_domain = {
-            "metrics": "sales",
-            "inventory": "inventory",
-            "marketing": "marketing",
-            "support": "support",
-        }
+        server_to_domain = SERVER_TO_DOMAIN
         for hint in hints:
             domain = server_to_domain.get(hint.get("server", ""))
             if domain:
@@ -158,53 +79,13 @@ def _after_reflect(state: AgentState) -> str | list[Send]:
 
 def _after_plan(state: AgentState) -> str:
     """Route after the plan node."""
+    if state.get("action_plan_blocker"):
+        return "respond_action_blocked"
     if not state.get("needs_write"):
         return "respond"
     if state.get("approved"):
         return "execute"
     return "respond_pending"
-
-
-def _respond_pending(state: AgentState) -> dict:
-    """Synthetic node: inform the user that approvals are pending."""
-    approvals = state.get("pending_approvals", [])
-    lines = [f"- **{a['tool']}** on *{a['server']}*: {a['reason']}" for a in approvals]
-    summary = (
-        "The following actions require your approval before they can be executed:\n"
-        + "\n".join(lines)
-    )
-    recommendations = [
-        {
-            "action_type": a.get("tool", "investigate"),
-            "reason": a.get("reason", ""),
-            "risk_level": a.get("risk_level", "medium"),
-            "reversible": bool(a.get("reversible", True)),
-        }
-        for a in approvals
-    ]
-    existing_findings: list = []
-    for tr in state.get("tool_results", []):
-        if not tr.get("error") and isinstance(tr.get("result"), dict):
-            existing_findings.append(
-                {
-                    "title": f"Data from {tr['tool']}",
-                    "detail": str(tr["result"])[:300],
-                    "severity": "info",
-                    "root_cause": "",
-                    "affected_products": [],
-                    "affected_regions": [],
-                }
-            )
-    return {
-        "response_summary": summary,
-        "response_details": {
-            "summary": summary,
-            "findings": existing_findings,
-            "recommendations": recommendations,
-            "actions_taken": [],
-            "pending_approvals": [dict(a) for a in approvals],
-        },
-    }
 
 
 def _dispatch_agents(state: AgentState) -> list[Send]:
@@ -235,6 +116,7 @@ def _build_graph() -> Any:
     builder.add_node("execute", execute)
     builder.add_node("respond", respond)
     builder.add_node("respond_pending", _respond_pending)
+    builder.add_node("respond_action_blocked", _respond_action_blocked)
     builder.add_node("respond_unknown", _respond_unknown)
     builder.add_node("respond_guardrail", _respond_guardrail)
 
@@ -245,6 +127,7 @@ def _build_graph() -> Any:
         {
             "plan_domains": "plan_domains",
             "recall": "recall",
+            "plan": "plan",
             "respond_unknown": "respond_unknown",
             "respond_guardrail": "respond_guardrail",
         },
@@ -269,12 +152,14 @@ def _build_graph() -> Any:
             "respond": "respond",
             "execute": "execute",
             "respond_pending": "respond_pending",
+            "respond_action_blocked": "respond_action_blocked",
         },
     )
 
     builder.add_edge("execute", "respond")
     builder.add_edge("respond", END)
     builder.add_edge("respond_pending", END)
+    builder.add_edge("respond_action_blocked", END)
     builder.add_edge("respond_unknown", END)
     builder.add_edge("respond_guardrail", END)
 
@@ -288,10 +173,10 @@ async def run_graph(
     user_query: str,
     conversation_history: list[dict] | None = None,
     approved: bool = False,
-    pending_approvals: list[dict] | None = None,
+    pending_approvals: list[PendingApproval] | None = None,
 ) -> dict[str, Any]:
     """Run the agent graph for a user query."""
-    messages = []
+    messages: list[BaseMessage] = []
     if conversation_history:
         for msg in conversation_history[-10:]:
             if msg["role"] == "user":
@@ -309,6 +194,7 @@ async def run_graph(
         "pending_approvals": pending_approvals or [],
         "needs_write": False,
         "approved": approved,
+        "action_plan_blocker": None,
         "response_summary": "",
         "response_details": {},
         "error": None,
@@ -355,6 +241,7 @@ _STREAM_NODE_NAMES: frozenset[str] = frozenset(
         "execute",
         "respond",
         "respond_pending",
+        "respond_action_blocked",
         "respond_unknown",
         "respond_guardrail",
     }

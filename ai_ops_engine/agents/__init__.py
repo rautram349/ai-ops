@@ -7,9 +7,9 @@ from ai_ops_engine.agents.sales_agent import sales_agent
 from ai_ops_engine.agents.support_agent import support_agent
 
 __all__ = [
-    "sales_agent",
     "inventory_agent",
     "marketing_agent",
-    "support_agent",
     "memory_agent",
+    "sales_agent",
+    "support_agent",
 ]

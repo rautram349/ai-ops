@@ -22,8 +22,8 @@ import structlog
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from backend.db.repositories.approvals import IncidentRepository
-from ai_ops_engine.clients.mcp_client import MCPClient
+from ai_ops_engine.clients.mcp_client import get_mcp_client
+from backend.db.repositories import IncidentRepository
 
 logger = structlog.get_logger(__name__)
 
@@ -193,7 +193,7 @@ def _classify_stockout(result: Any, check_date: date) -> AnomalyDetail | None:
                 "domains": ["inventory"],
             }
         ],
-        affected_products=[e.get("product_id") for e in events if e.get("product_id")],
+        affected_products=[e["product_id"] for e in events if e.get("product_id")],
         confidence=0.9,
     )
 
@@ -218,7 +218,7 @@ def _classify_complaint_spike(result: Any, check_date: date) -> AnomalyDetail | 
         title=f"Complaint spike on {check_date}: {total} tickets{change_str}",
         summary=(
             f"{total} support tickets on {check_date}{change_str}. "
-            f"This is above the 1.5× threshold relative to the prior period."
+            f"This is above the 1.5x threshold relative to the prior period."
         ),
         affected_domains=["support"],
         root_causes=[
@@ -243,7 +243,7 @@ async def run_monitor_check(db: AsyncSession) -> MonitorResult:
     t0 = time.monotonic()
 
     # ── Parallel MCP calls ────────────────────────────────────────────────────
-    client = MCPClient()
+    client = get_mcp_client()
     calls: list[tuple[str, str, dict[str, Any]]] = [
         ("metrics", "detect_anomaly", {"metric": "revenue", "date": date_str}),
         ("metrics", "detect_anomaly", {"metric": "orders", "date": date_str}),

@@ -13,7 +13,7 @@ Usage (from app lifespan)::
 from __future__ import annotations
 
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import structlog
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -33,7 +33,7 @@ _scheduler: AsyncIOScheduler | None = None
 async def _monitor_job() -> None:
     """Execute one health-check cycle and record the result."""
     run = MonitorRun(
-        triggered_at=datetime.now(timezone.utc),
+        triggered_at=datetime.now(UTC),
         status="running",
     )
     store.record_run(run)
@@ -50,7 +50,7 @@ async def _monitor_job() -> None:
         run.detail = result.detail
         run.duration_ms = int((time.monotonic() - t0) * 1000)
 
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         run.status = "error"
         run.error = str(exc)
         run.duration_ms = int((time.monotonic() - t0) * 1000)
@@ -102,4 +102,4 @@ def trigger_now() -> None:
     """Manually fire the monitor job immediately (useful for debugging)."""
     if _scheduler is None:
         raise RuntimeError("Scheduler is not running.")
-    _scheduler.modify_job("monitor_job", next_run_time=datetime.now(timezone.utc))
+    _scheduler.modify_job("monitor_job", next_run_time=datetime.now(UTC))

@@ -26,6 +26,7 @@ import numpy as np
 import pandas as pd
 
 from data_gen.generators.constants import (
+    END_DATE,
     HOLIDAY_SPIKES,
     INCIDENT_CALENDAR,
     ITEMS_PER_ORDER_HI,
@@ -39,14 +40,13 @@ from data_gen.generators.constants import (
     REGIONS,
     SEED,
     START_DATE,
-    END_DATE,
     WEEKDAY_FACTORS,
 )
 
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Per-day baseline: converted from spec's 300–800 range.
+# Per-day baseline: converted from spec's 300-800 range.
 # We fix baseline at 500 orders/day and let weekday factor + noise vary it.
 # ---------------------------------------------------------------------------
 BASELINE_ORDERS_PER_DAY: int = 500
@@ -162,8 +162,8 @@ def generate_orders(
     item_counter: int = 1
 
     # Accumulators for customer aggregates
-    cust_orders: dict[str, int] = {cid: 0 for cid in customers["customer_id"]}
-    cust_spent: dict[str, float] = {cid: 0.0 for cid in customers["customer_id"]}
+    cust_orders: dict[str, int] = dict.fromkeys(customers["customer_id"], 0)
+    cust_spent: dict[str, float] = dict.fromkeys(customers["customer_id"], 0.0)
 
     current_date = _start
     while current_date <= _end:
@@ -180,7 +180,7 @@ def generate_orders(
             cust_idx = int(rng.choice(cust_pool))
             customer_id = customers.loc[cust_idx, "customer_id"]
 
-            # Pick 1–ITEMS_PER_ORDER_HI products (power-law biased)
+            # Pick 1-ITEMS_PER_ORDER_HI products (power-law biased)
             n_items = int(rng.integers(ITEMS_PER_ORDER_LO, ITEMS_PER_ORDER_HI + 1))
             chosen_product_indices = rng.choice(
                 len(products), size=n_items, replace=False, p=demand_weights

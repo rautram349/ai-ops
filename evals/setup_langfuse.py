@@ -18,7 +18,8 @@ _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv(_ROOT / ".env", override=True)
 
 SCENARIOS_DIR = Path(__file__).parent / "scenarios"
@@ -28,7 +29,7 @@ DATASET_NAME = "ecommerce_ops_brain_evals"
 def main() -> None:
     sk = os.getenv("LANGFUSE_SECRET_KEY", "")
     pk = os.getenv("LANGFUSE_PUBLIC_KEY", "")
-    host = os.getenv("LANGFUSE_BASE_URL") or os.getenv("LANGFUSE_HOST", "https://cloud.langfuse.com")
+    host = os.getenv("LANGFUSE_BASE_URL") or os.getenv("LANGFUSE_HOST") or "https://cloud.langfuse.com"
 
     if not sk or sk.startswith("sk-lf-..."):
         print("ERROR: LANGFUSE_SECRET_KEY not configured in .env")
@@ -45,7 +46,7 @@ def main() -> None:
 
     # Create or get existing dataset
     try:
-        dataset = lf.create_dataset(
+        lf.create_dataset(
             name=DATASET_NAME,
             description="E-commerce Operations Brain — 16 benchmark eval scenarios",
         )

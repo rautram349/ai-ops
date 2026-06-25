@@ -4,8 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import date, datetime, timedelta, timezone
-from typing import Any
+from datetime import UTC, date, datetime, timedelta
 
 import structlog
 
@@ -20,7 +19,7 @@ _DATA_END = date(2026, 4, 13)
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return datetime.now(UTC).replace(tzinfo=None)
 
 
 def _today() -> str:
@@ -39,6 +38,19 @@ def _strip_code_fences(text: str) -> str:
     if m:
         return m.group(1).strip()
     return text
+
+
+# Prefixes that identify internal graph-node messages (not user-visible).
+# Used by route, respond, and builder to filter prior_msgs.
+SKIP_MESSAGE_PREFIXES: tuple[str, ...] = (
+    "[route]",
+    "[diagnose]",
+    "[plan]",
+    "[execute]",
+    "[plan_domains]",
+    "[synthesize]",
+    "[memory_agent]",
+)
 
 
 # ── Formatting helpers ────────────────────────────────────────────────────────

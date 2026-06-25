@@ -156,7 +156,7 @@ CAMPAIGN_CHANNELS: list[str] = ["paid_search", "social", "display", "email"]
 # ---------------------------------------------------------------------------
 
 INCIDENT_CALENDAR: list[dict] = [
-    # ── Apr–Jun 2025 (original 10 incidents) ─────────────────────────────────
+    # ── Apr-Jun 2025 (original 10 incidents) ─────────────────────────────────
     {
         "day": 11, "type": "inventory_stockout",
         "tag": "stockout_top_sellers",
@@ -218,7 +218,7 @@ INCIDENT_CALENDAR: list[dict] = [
         "inventory_low": True, "campaign_cpc_high": True,
         "delivery_complaint_lift": 0.20,
     },
-    # ── Jun–Aug 2025 ──────────────────────────────────────────────────────────
+    # ── Jun-Aug 2025 ──────────────────────────────────────────────────────────
     {
         "day": 75, "type": "shipping_delay",
         "tag": "shipping_delay",
@@ -244,7 +244,7 @@ INCIDENT_CALENDAR: list[dict] = [
         "rating_drop": 0.85, "return_multiplier": 1.9,
         "conversion_drop": 0.14,
     },
-    # ── Sep–Oct 2025 ──────────────────────────────────────────────────────────
+    # ── Sep-Oct 2025 ──────────────────────────────────────────────────────────
     {
         "day": 155, "type": "checkout_bug",
         "tag": "checkout_issue",
@@ -295,7 +295,7 @@ INCIDENT_CALENDAR: list[dict] = [
         "bug_hours": 5, "failure_rate": 0.12,
         "complaint_multiplier": 3.0,
     },
-    # ── Jan–Feb 2026 ──────────────────────────────────────────────────────────
+    # ── Jan-Feb 2026 ──────────────────────────────────────────────────────────
     {
         "day": 280, "type": "review_surge",
         "tag": "quality_issue",
@@ -308,7 +308,7 @@ INCIDENT_CALENDAR: list[dict] = [
         "tag": "campaign_disruption",
         "region": "North", "traffic_drop_pct": 0.19, "order_drop_pct": 0.16,
     },
-    # ── Mar–Apr 2026 ──────────────────────────────────────────────────────────
+    # ── Mar-Apr 2026 ──────────────────────────────────────────────────────────
     {
         "day": 320, "type": "inventory_stockout",
         "tag": "stockout_top_sellers",

@@ -3,41 +3,17 @@
 from __future__ import annotations
 
 import json
-import re
-from datetime import date, timedelta
-from typing import Any, Callable
+from collections.abc import Callable
 
 import structlog
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from ai_ops_engine.clients.mcp_client import get_mcp_client
+from ai_ops_engine.graph.nodes.shared import _DATA_END, _days_ago, _strip_code_fences, _today
 from ai_ops_engine.graph.state import AgentState, ToolCallRecord
 from ai_ops_engine.llm import get_llm
 
 logger = structlog.get_logger(__name__)
-
-
-# Cap all date helpers at the last date for which data was generated so that
-# queries like "this week" don't fall past the data cutoff and return zero rows.
-_DATA_END = date(2026, 4, 13)
-
-
-def _today() -> str:
-    return min(date.today(), _DATA_END).isoformat()
-
-
-def _days_ago(n: int) -> str:
-    ref = min(date.today(), _DATA_END)
-    return (ref - timedelta(days=n)).isoformat()
-
-
-def _strip_code_fences(text: str) -> str:
-    """Strip markdown code fences (```json ... ```) from LLM output."""
-    text = text.strip()
-    m = re.match(r"^```(?:json)?\s*\n?(.*?)```$", text, re.DOTALL)
-    if m:
-        return m.group(1).strip()
-    return text
 
 
 async def run_domain_agent(
@@ -48,7 +24,7 @@ async def run_domain_agent(
     system_prompt: str,
     default_tools: list[dict],
     node_name: str,
-    tool_sanitizer: "Callable[[list[dict], str], list[dict]] | None" = None,
+    tool_sanitizer: Callable[[list[dict], str], list[dict]] | None = None,
 ) -> dict:
     """Generic domain-agent runner.
 
@@ -78,7 +54,7 @@ async def run_domain_agent(
             SystemMessage(content=prompt),
             HumanMessage(content=f"Intent: {intent}\nQuery: {query}"),
         ])
-        raw = response.content if hasattr(response, "content") else str(response)
+        raw: str = str(response.content) if hasattr(response, "content") else str(response)
         logger.info(f"{node_name}_raw_response", raw=raw[:500])
 
         try:
@@ -104,7 +80,7 @@ async def run_domain_agent(
     ]
     raw_results = await client.call_tools_parallel(parallel)
     records: list[ToolCallRecord] = []
-    for tc, result in zip(tool_calls, raw_results):
+    for tc, result in zip(tool_calls, raw_results, strict=False):
         is_error = isinstance(result, Exception)
         records.append(ToolCallRecord(
             server=tc.get("server", server),

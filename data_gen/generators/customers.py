@@ -17,8 +17,8 @@ from faker import Faker
 
 from data_gen.generators.constants import (
     NUM_CUSTOMERS,
-    REGIONS,
     REGION_WEIGHTS,
+    REGIONS,
     SEED,
     START_DATE,
 )
@@ -53,7 +53,7 @@ def generate_customers(seed: int = SEED) -> pd.DataFrame:
     # Assign regions according to share weights
     region_counts = rng.multinomial(NUM_CUSTOMERS, REGION_WEIGHTS)
     regions: list[str] = []
-    for region, count in zip(REGIONS, region_counts):
+    for region, count in zip(REGIONS, region_counts, strict=False):
         regions.extend([region] * int(count))
     rng.shuffle(regions)
 

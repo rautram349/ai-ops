@@ -24,33 +24,33 @@ import json
 import os
 import sys
 import traceback
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 # ── Rich for pretty terminal output ──────────────────────────────────────────
+Console: type[Any] | None = None
 try:
     from rich.console import Console
     from rich.table import Table
-    from rich import print as rprint
     _RICH = True
 except ImportError:
     _RICH = False
-    Console = None  # type: ignore[assignment,misc]
 
 # ── Project root on sys.path ──────────────────────────────────────────────────
 _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv  # noqa: E402
+
 load_dotenv(_ROOT / ".env", override=True)
 
-from ai_ops_engine.graph.builder import run_graph
-from evals.scoring import (
+from ai_ops_engine.graph.builder import run_graph  # noqa: E402
+from evals.scoring import (  # noqa: E402
     ScenarioScore,
-    score_scenario,
     score_multi_turn,
+    score_scenario,
 )
 
 SCENARIOS_DIR = Path(__file__).parent / "scenarios"
@@ -59,7 +59,7 @@ RESULTS_DIR = Path(__file__).parent / "results"
 
 # ── Langfuse helper ───────────────────────────────────────────────────────────
 
-def _get_langfuse_client():
+def _get_langfuse_client() -> Any:
     """Return a Langfuse client if env vars are configured, else None."""
     try:
         sk = os.getenv("LANGFUSE_SECRET_KEY", "")
@@ -74,7 +74,7 @@ def _get_langfuse_client():
 
 
 def _push_score(
-    lf,
+    lf: Any,
     scenario_score: ScenarioScore,
     trace_id: str | None,
     scenario_id: str,
@@ -98,7 +98,7 @@ def _push_score(
 
 async def run_single_scenario(
     scenario: dict[str, Any],
-    lf=None,
+    lf: Any = None,
 ) -> tuple[ScenarioScore, dict[str, Any]]:
     """Run one scenario (single or multi-turn) and return score + raw result."""
     is_multi = scenario.get("multi_turn", False)
@@ -122,7 +122,7 @@ async def run_single_scenario(
 
         scenario_score = score_multi_turn(scenario, turn_results)
         _push_score(lf, scenario_score, last_trace_id, scenario["id"])
-        raw = {"turns": [{"intent": r.get("intent"), "needs_write": r.get("needs_write")} for r in turn_results]}
+        raw: dict[str, Any] = {"turns": [{"intent": r.get("intent"), "needs_write": r.get("needs_write")} for r in turn_results]}
 
     else:
         prompt = scenario["prompt"]
@@ -185,6 +185,7 @@ def _print_summary_table(scores: list[ScenarioScore], elapsed_s: float) -> None:
     rate = grand_total / grand_max if grand_max > 0 else 0.0
 
     if _RICH:
+        assert Console is not None
         console = Console()
         table = Table(title="Eval Harness Results", show_lines=True)
         table.add_column("Scenario", style="cyan", no_wrap=True)
@@ -244,7 +245,7 @@ async def main(args: argparse.Namespace) -> None:
         print(f"No scenario files found in {SCENARIOS_DIR}")
         sys.exit(1)
 
-    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    ts = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")
     run_dir = RESULTS_DIR / ts
 
     all_scores: list[ScenarioScore] = []

@@ -5,15 +5,15 @@ from __future__ import annotations
 import json
 
 import structlog
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 
+from ai_ops_engine.graph.domains import DOMAIN_TO_SERVER
 from ai_ops_engine.graph.nodes.shared import (
-    _now,
     _days_ago,
-    _today,
     _strip_code_fences,
     _summarise_domain_findings,
     _summarise_tool_results,
+    _today,
 )
 from ai_ops_engine.graph.state import AgentState
 from ai_ops_engine.llm import get_llm
@@ -23,7 +23,7 @@ logger = structlog.get_logger(__name__)
 
 # ── Sanitization constants ────────────────────────────────────────────────────
 
-_VALID_SERVERS = {"metrics", "inventory", "marketing", "support"}
+_VALID_SERVERS: frozenset[str] = frozenset(DOMAIN_TO_SERVER.values())
 _DETECT_ANOMALY_TOOL = {"detect_anomaly"}
 _COMPARE_SALES_TOOL = {"compare_sales"}
 _DATE_ARG_TOOLS = {
@@ -149,13 +149,11 @@ def _sanitize_follow_up_tools(tools: list[dict]) -> list[dict]:
 
 async def reflect(state: AgentState) -> dict:
     """Evaluate evidence quality and optionally trigger a targeted reinvestigation pass."""
-    t0 = _now()
     llm = get_llm()
 
     iteration = state.get("iteration_count", 0)
     if iteration >= 2:
         logger.info("reflect_max_iterations", iteration=iteration)
-        t1 = _now()
         return {
             "reflection_summary": "Maximum investigation iterations reached; proceeding with available data.",
             "reflection_confidence": 0.7,
@@ -179,11 +177,10 @@ async def reflect(state: AgentState) -> dict:
             HumanMessage(content=prompt_content),
         ]
     )
-    t1 = _now()
 
     try:
         cleaned = _strip_code_fences(
-            response.content if hasattr(response, "content") else str(response)
+            str(response.content) if hasattr(response, "content") else str(response)
         )
         parsed: dict = json.loads(cleaned)
     except (json.JSONDecodeError, AttributeError):

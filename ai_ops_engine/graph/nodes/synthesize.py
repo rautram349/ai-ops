@@ -7,7 +7,11 @@ import json
 import structlog
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
-from ai_ops_engine.graph.nodes.shared import _now, _strip_code_fences, _summarise_domain_findings, _summarise_tool_results
+from ai_ops_engine.graph.nodes.shared import (
+    _strip_code_fences,
+    _summarise_domain_findings,
+    _summarise_tool_results,
+)
 from ai_ops_engine.graph.state import AgentState
 from ai_ops_engine.llm import get_llm
 from ai_ops_engine.prompts import SYNTHESIZE_SYSTEM as _SYNTHESIZE_SYSTEM
@@ -42,17 +46,14 @@ async def synthesize(state: AgentState) -> dict:
     ])
 
     try:
-        cleaned = _strip_code_fences(response.content if hasattr(response, "content") else str(response))
+        cleaned = _strip_code_fences(str(response.content) if hasattr(response, "content") else str(response))
         parsed: dict = json.loads(cleaned)
+        cross_domain_summary: str = parsed.get("cross_domain_summary", "")
     except (json.JSONDecodeError, AttributeError):
-        parsed = {
-            "cross_domain_summary": "Analysis complete — proceeding with available data.",
-            "root_causes": [],
-            "coverage_gaps": [],
-        }
+        cross_domain_summary = "Analysis complete — proceeding with available data."
 
-    logger.info("synthesize", num_root_causes=len(parsed.get("root_causes", [])))
+    logger.info("synthesize")
 
     return {
-        "messages": [AIMessage(content=f"[synthesize] {parsed.get('cross_domain_summary', '')[:200]}")],
+        "messages": [AIMessage(content=f"[synthesize] {cross_domain_summary[:200]}")],
     }

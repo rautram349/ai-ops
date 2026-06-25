@@ -5,7 +5,8 @@ export type Intent =
   | "marketing_performance"
   | "support_analysis"
   | "multi_domain"
-  | "unknown";
+  | "unknown"
+  | "action";
 
 // ─── Chat API ─────────────────────────────────────────────────────────────────
 export interface Finding {

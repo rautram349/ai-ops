@@ -6,6 +6,7 @@ import {
   Package,
   Shuffle,
   TrendingDown,
+  Zap,
 } from "lucide-react";
 import type { Intent } from "../../../types/api";
 
@@ -16,6 +17,7 @@ const INTENT_META: Record<Intent, { label: string; color: string; icon: LucideIc
   support_analysis: { label: "Support", color: "var(--intent-support)", icon: Headphones },
   multi_domain: { label: "Multi-Domain", color: "var(--intent-multi)", icon: Shuffle },
   unknown: { label: "General", color: "var(--intent-unknown)", icon: MessageCircle },
+  action: { label: "Action", color: "var(--intent-action)", icon: Zap },
 };
 
 export function IntentBadge({ intent }: { intent: Intent }) {

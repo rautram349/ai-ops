@@ -1,8 +1,8 @@
 """Chat router — the primary entry point for user queries.
 
 Endpoint:
-    POST /api/chat        – submit a query, receive a structured investigation response
-    POST /api/chat/stream – same, but as Server-Sent Events with node-progress events
+    POST /api/chat        - submit a query, receive a structured investigation response
+    POST /api/chat/stream - same, but as Server-Sent Events with node-progress events
 
 The graph invocation is delegated to ``backend.services.chat_service``.
 """
@@ -19,9 +19,9 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sse_starlette.sse import EventSourceResponse
 
+from ai_ops_engine.graph.builder import stream_graph_events
 from backend.db.connection import get_db
 from backend.services.chat_service import ChatService
-from ai_ops_engine.graph.builder import stream_graph_events
 
 logger = structlog.get_logger(__name__)
 
@@ -88,7 +88,7 @@ class ChatOut(BaseModel):
 async def chat(
     body: ChatRequest,
     db: AsyncSession = Depends(get_db),
-) -> ChatOut:
+) -> dict[str, Any]:
     """Submit a user query and receive a structured investigation response.
 
     Creates or resumes a conversation, triggers the LangGraph orchestration
