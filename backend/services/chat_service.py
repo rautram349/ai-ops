@@ -7,10 +7,10 @@ from datetime import date
 from typing import Any
 
 import structlog
-from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.constants import GuardrailCategory, GuardrailStatus, MessageRole, RiskLevel
+from backend.exceptions import GraphEngineError
 from backend.db.repositories import ApprovalRepository, ConversationRepository, IncidentRepository
 from backend.services.graph_runner import DefaultGraphRunner, GraphRunner
 
@@ -248,10 +248,7 @@ class ChatService:
         except Exception as exc:
             error_msg = str(exc)
             logger.error("graph_error", conversation_id=str(conversation_id), error=error_msg)
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"AI-ops engine error: {error_msg}",
-            ) from exc
+            raise GraphEngineError(f"AI-ops engine error: {error_msg}") from exc
 
         response_details, assistant_msg = await self._persist_graph_result(
             conversation_id=conversation_id,

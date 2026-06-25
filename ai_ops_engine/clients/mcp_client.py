@@ -25,6 +25,7 @@ from fastmcp import Client
 from fastmcp.client.transports import SSETransport
 
 from backend.core.config import settings
+from backend.exceptions import UnknownMCPServerError
 
 # ── Server URL map ────────────────────────────────────────────────────────────
 
@@ -81,9 +82,7 @@ class MCPClient:
             Exception: Any error raised by the MCP server tool.
         """
         if server not in self._urls:
-            raise ValueError(
-                f"Unknown MCP server '{server}'. Choose from: {sorted(self._urls)}"
-            )
+            raise UnknownMCPServerError(server, self._urls)
 
         url = self._urls[server]
         async with Client(SSETransport(url)) as client:

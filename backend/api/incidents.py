@@ -11,13 +11,14 @@ import uuid
 from datetime import date, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, field_serializer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.constants import DEFAULT_PAGE_LIMIT
 from backend.db.connection import get_db
 from backend.db.repositories import IncidentRepository
+from backend.exceptions import IncidentNotFoundError
 
 router = APIRouter(prefix="/api/incidents", tags=["incidents"])
 
@@ -108,10 +109,7 @@ async def get_incident(
     repo = IncidentRepository(db)
     incident = await repo.get(incident_id)
     if incident is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Incident {incident_id} not found.",
-        )
+        raise IncidentNotFoundError(incident_id)
     return IncidentOut.model_validate(incident)
 
 
@@ -141,10 +139,7 @@ async def resolve_incident(
     repo = IncidentRepository(db)
     incident = await repo.get(incident_id)
     if incident is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Incident {incident_id} not found.",
-        )
+        raise IncidentNotFoundError(incident_id)
     await repo.resolve(incident_id, outcome_summary=body.outcome_summary)
     await db.commit()
     updated = await repo.get(incident_id)

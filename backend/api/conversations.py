@@ -13,13 +13,14 @@ import uuid
 from datetime import datetime
 from typing import Annotated, Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, StringConstraints, field_serializer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.constants import DEFAULT_PAGE_LIMIT
 from backend.db.connection import get_db
 from backend.db.repositories import ConversationRepository
+from backend.exceptions import ConversationNotFoundError
 
 router = APIRouter(prefix="/api/conversations", tags=["conversations"])
 
@@ -105,10 +106,7 @@ async def get_conversation(
     repo = ConversationRepository(db)
     convo = await repo.get_with_messages(conversation_id)
     if convo is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Conversation {conversation_id} not found.",
-        )
+        raise ConversationNotFoundError(conversation_id)
     return ConversationDetailOut.model_validate(convo)
 
 
@@ -134,10 +132,7 @@ async def update_conversation_title(
     repo = ConversationRepository(db)
     convo = await repo.get(conversation_id)
     if convo is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Conversation {conversation_id} not found.",
-        )
+        raise ConversationNotFoundError(conversation_id)
     await repo.update_title(conversation_id, body.title)
     convo.title = body.title.strip()
     return ConversationOut.model_validate(convo)
@@ -160,8 +155,5 @@ async def archive_conversation(
     repo = ConversationRepository(db)
     convo = await repo.get(conversation_id)
     if convo is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Conversation {conversation_id} not found.",
-        )
+        raise ConversationNotFoundError(conversation_id)
     await repo.archive(conversation_id)

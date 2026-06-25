@@ -16,6 +16,16 @@ from contextlib import asynccontextmanager
 import structlog
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from backend.exceptions import (
+    AiOpsError,
+    ConflictError,
+    DomainValidationError,
+    GraphEngineError,
+    MCPError,
+    NotFoundError,
+)
 
 from backend.api.approvals import router as approvals_router
 from backend.api.chat import router as chat_router
@@ -69,6 +79,26 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
+    )
+
+    # ── Exception handlers ────────────────────────────────────────────────────
+    application.add_exception_handler(
+        NotFoundError, lambda req, exc: JSONResponse(status_code=404, content={"detail": str(exc)})
+    )
+    application.add_exception_handler(
+        ConflictError, lambda req, exc: JSONResponse(status_code=409, content={"detail": str(exc)})
+    )
+    application.add_exception_handler(
+        DomainValidationError, lambda req, exc: JSONResponse(status_code=422, content={"detail": str(exc)})
+    )
+    application.add_exception_handler(
+        GraphEngineError, lambda req, exc: JSONResponse(status_code=503, content={"detail": str(exc)})
+    )
+    application.add_exception_handler(
+        MCPError, lambda req, exc: JSONResponse(status_code=502, content={"detail": str(exc)})
+    )
+    application.add_exception_handler(
+        AiOpsError, lambda req, exc: JSONResponse(status_code=500, content={"detail": str(exc)})
     )
 
     # ── Routers ───────────────────────────────────────────────────────────────

@@ -14,13 +14,19 @@ from datetime import UTC, datetime
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, field_serializer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai_ops_engine.clients.mcp_client import get_mcp_client
 from ai_ops_engine.graph.write_tools import WRITE_TOOL_SERVER as _TOOL_SERVER_MAP
 from backend.constants import ApprovalStatus, DEFAULT_PAGE_LIMIT
+from backend.exceptions import (
+    ApprovalAlreadyDecidedError,
+    ApprovalNotApprovedError,
+    ApprovalNotFoundError,
+    UnknownActionTypeError,
+)
 from backend.db.connection import get_db
 from backend.db.repositories import ApprovalRepository, IncidentRepository
 
@@ -128,10 +134,7 @@ async def get_approval(
     repo = ApprovalRepository(db)
     approval = await repo.get_approval(approval_id)
     if approval is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Approval {approval_id} not found.",
-        )
+        raise ApprovalNotFoundError(approval_id)
     return ApprovalOut.model_validate(approval)
 
 
@@ -157,15 +160,9 @@ async def approve_action(
     repo = ApprovalRepository(db)
     approval = await repo.get_approval(approval_id)
     if approval is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Approval {approval_id} not found.",
-        )
+        raise ApprovalNotFoundError(approval_id)
     if approval.status != ApprovalStatus.PENDING:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Approval is already in '{approval.status}' state.",
-        )
+        raise ApprovalAlreadyDecidedError(approval.status)
     updated = await repo.decide(
         approval_id,
         decision=ApprovalStatus.APPROVED,
@@ -202,15 +199,9 @@ async def reject_action(
     repo = ApprovalRepository(db)
     approval = await repo.get_approval(approval_id)
     if approval is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Approval {approval_id} not found.",
-        )
+        raise ApprovalNotFoundError(approval_id)
     if approval.status != ApprovalStatus.PENDING:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Approval is already in '{approval.status}' state.",
-        )
+        raise ApprovalAlreadyDecidedError(approval.status)
     updated = await repo.decide(
         approval_id,
         decision=ApprovalStatus.REJECTED,
@@ -242,21 +233,12 @@ async def execute_action(
     repo = ApprovalRepository(db)
     approval = await repo.get_approval(approval_id)
     if approval is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Approval {approval_id} not found.",
-        )
+        raise ApprovalNotFoundError(approval_id)
     if approval.status != ApprovalStatus.APPROVED:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Approval is in '{approval.status}' state, expected 'approved'.",
-        )
+        raise ApprovalNotApprovedError(approval.status)
     server = _TOOL_SERVER_MAP.get(approval.action_type)
     if server is None:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"No MCP server registered for action type '{approval.action_type}'.",
-        )
+        raise UnknownActionTypeError(approval.action_type)
 
     client = get_mcp_client()
     now = datetime.now(UTC).replace(tzinfo=None)

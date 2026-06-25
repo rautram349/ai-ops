@@ -20,6 +20,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from backend.core.config import settings
+from backend.exceptions import SchedulerNotRunningError
 from backend.db.connection import AsyncSessionLocal
 from backend.services import monitor_run_store as store
 from backend.services.monitor_run_store import MonitorRun
@@ -101,5 +102,5 @@ async def stop_scheduler() -> None:
 def trigger_now() -> None:
     """Manually fire the monitor job immediately (useful for debugging)."""
     if _scheduler is None:
-        raise RuntimeError("Scheduler is not running.")
+        raise SchedulerNotRunningError()
     _scheduler.modify_job("monitor_job", next_run_time=datetime.now(UTC))
