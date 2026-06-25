@@ -24,7 +24,6 @@ from __future__ import annotations
 import calendar
 import contextlib
 import datetime
-import os
 import threading
 from collections.abc import Iterator
 from typing import Any, overload
@@ -32,9 +31,8 @@ from typing import Any, overload
 import psycopg2
 import psycopg2.extras
 import psycopg2.pool
-from dotenv import load_dotenv
 
-load_dotenv()
+from mcp_servers.config import DATABASE_URL_SYNC
 
 _pool: psycopg2.pool.ThreadedConnectionPool | None = None
 _pool_lock = threading.Lock()
@@ -44,11 +42,7 @@ _MAX_CONN = 10
 
 
 def _build_pool() -> psycopg2.pool.ThreadedConnectionPool:
-    dsn = os.environ.get(
-        "DATABASE_URL_SYNC",
-        "postgresql://postgres:postgres@localhost:5432/ecommerce_ops_brain",
-    )
-    return psycopg2.pool.ThreadedConnectionPool(_MIN_CONN, _MAX_CONN, dsn=dsn)
+    return psycopg2.pool.ThreadedConnectionPool(_MIN_CONN, _MAX_CONN, dsn=DATABASE_URL_SYNC)
 
 
 def _get_pool() -> psycopg2.pool.ThreadedConnectionPool:

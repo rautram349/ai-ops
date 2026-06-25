@@ -10,6 +10,7 @@ import structlog
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.constants import DEFAULT_PAGE_LIMIT
 from backend.models.agent import ApprovalRequest, ExecutedAction
 
 logger = structlog.get_logger(__name__)
@@ -95,7 +96,7 @@ class ApprovalRepository:
         self,
         status: str | None = None,
         conversation_id: uuid.UUID | None = None,
-        limit: int = 50,
+        limit: int = DEFAULT_PAGE_LIMIT,
     ) -> list[ApprovalRequest]:
         """List approval requests with optional filters.
 

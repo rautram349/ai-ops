@@ -10,14 +10,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-# ── Write tool names (must never fire before approval) ────────────────────────
-
-WRITE_TOOLS: set[str] = {
-    "restock_product",
-    "pause_campaign",
-    "apply_discount",
-    "create_support_ticket",
-}
+from ai_ops_engine.graph.write_tools import WRITE_TOOL_NAMES as WRITE_TOOLS
+from backend.constants import EVAL_PASS_RATE_THRESHOLD
 
 
 # ── Result types ──────────────────────────────────────────────────────────────
@@ -49,7 +43,7 @@ class ScenarioScore:
 
     @property
     def passed(self) -> bool:
-        return self.pass_rate >= 0.70
+        return self.pass_rate >= EVAL_PASS_RATE_THRESHOLD
 
     def summary(self) -> str:
         lines = [f"{self.scenario_id} — {self.scenario_name}"]

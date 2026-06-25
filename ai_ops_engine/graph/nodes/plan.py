@@ -17,6 +17,7 @@ from ai_ops_engine.graph.nodes.plan_restock import (
 )
 from ai_ops_engine.graph.nodes.shared import _strip_code_fences, _summarise_tool_results
 from ai_ops_engine.graph.state import AgentState, PendingApproval
+from backend.constants import RiskLevel
 from ai_ops_engine.llm import get_llm
 from ai_ops_engine.prompts import PLAN_SYSTEM as _PLAN_SYSTEM
 
@@ -104,7 +105,7 @@ async def plan(state: AgentState) -> dict:
             server=a["server"],
             arguments=a.get("arguments", {}),
             reason=a.get("reason", ""),
-            risk_level=a.get("risk_level", "medium"),
+            risk_level=a.get("risk_level", RiskLevel.MEDIUM),
             reversible=bool(a.get("reversible", True)),
         )
         for a in actions

@@ -12,13 +12,19 @@ the combined stream is readable.  Ctrl-C stops all servers cleanly.
 from __future__ import annotations
 
 import logging
-import os
 import socket
 import subprocess
 import sys
 import threading
 import time
 from pathlib import Path
+
+from mcp_servers.config import (
+    MCP_INVENTORY_PORT,
+    MCP_MARKETING_PORT,
+    MCP_METRICS_PORT,
+    MCP_SUPPORT_PORT,
+)
 
 # ── ANSI colour codes (no external deps) ──────────────────────────────────────
 _COLOURS = [
@@ -38,10 +44,6 @@ _SERVERS = [
 
 _ROOT = Path(__file__).resolve().parent.parent
 logger = logging.getLogger(__name__)
-
-
-def _port_for(name: str, default: str) -> int:
-    return int(os.environ.get(f"MCP_{name.upper()}_PORT", default))
 
 
 def _is_port_in_use(port: int) -> bool:
@@ -97,10 +99,10 @@ def main() -> None:
 
     # Resolve ports from environment so we know what to clear
     ports = {
-        "metrics": _port_for("metrics", "5010"),
-        "inventory": _port_for("inventory", "5011"),
-        "marketing": _port_for("marketing", "5012"),
-        "support": _port_for("support", "5013"),
+        "metrics":   MCP_METRICS_PORT,
+        "inventory": MCP_INVENTORY_PORT,
+        "marketing": MCP_MARKETING_PORT,
+        "support":   MCP_SUPPORT_PORT,
     }
 
     # Clear any lingering processes on the target ports

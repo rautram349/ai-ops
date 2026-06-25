@@ -15,20 +15,14 @@ Run this server::
 
 from __future__ import annotations
 
-import os
 import re
 
-from dotenv import load_dotenv
 from fastmcp import FastMCP
 
+from mcp_servers.config import MCP_INVENTORY_HOST as _HOST, MCP_INVENTORY_PORT as _PORT
 from mcp_servers.db import execute_query, safe_date
 
-load_dotenv()
-
 mcp = FastMCP("inventory-mcp")
-
-_HOST = os.environ.get("MCP_INVENTORY_HOST", "localhost")
-_PORT = int(os.environ.get("MCP_INVENTORY_PORT", "5011"))
 
 
 # ─────────────────────────────────────────────────────────────────────────────

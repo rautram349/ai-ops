@@ -15,6 +15,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, field_serializer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.constants import DEFAULT_PAGE_LIMIT
 from backend.db.connection import get_db
 from backend.db.repositories import IncidentRepository
 
@@ -60,7 +61,7 @@ async def list_incidents(
     start_date: date | None = None,
     end_date: date | None = None,
     resolved: bool | None = None,
-    limit: int = 50,
+    limit: int = DEFAULT_PAGE_LIMIT,
     db: AsyncSession = Depends(get_db),
 ) -> list[IncidentOut]:
     """List past incidents with optional filters.

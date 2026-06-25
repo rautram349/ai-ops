@@ -9,6 +9,7 @@ import structlog
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 from ai_ops_engine.graph.nodes.guardrails import _local_guardrail, _looks_like_action_request
+from backend.constants import GuardrailCategory, GuardrailStatus
 from ai_ops_engine.graph.nodes.shared import SKIP_MESSAGE_PREFIXES, _now, _strip_code_fences
 from ai_ops_engine.graph.state import AgentState, Intent
 from ai_ops_engine.llm import get_llm
@@ -21,7 +22,7 @@ _VALID_INTENTS: frozenset[str] = frozenset(typing.get_args(Intent))
 def _guardrail_response(category: str, reason: str) -> dict:
     return {
         "intent": "irrelevant",
-        "guardrail_status": "blocked",
+        "guardrail_status": GuardrailStatus.BLOCKED,
         "guardrail_category": category,
         "guardrail_reason": reason,
         "messages": [
@@ -47,9 +48,9 @@ async def route(state: AgentState) -> dict:
         logger.info("route_deterministic_action", query=query[:80], guardrail_category=category)
         return {
             "intent": "action",
-            "guardrail_status": "allowed",
-            "guardrail_category": category if category != "unknown" else "in_scope",
-            "guardrail_reason": reason if category != "unknown" else "Explicit operational action request.",
+            "guardrail_status": GuardrailStatus.ALLOWED,
+            "guardrail_category": category if category != GuardrailCategory.UNKNOWN else GuardrailCategory.IN_SCOPE,
+            "guardrail_reason": reason if category != GuardrailCategory.UNKNOWN else "Explicit operational action request.",
             "messages": [AIMessage(content="[route] Intent classified as: action")],
         }
 
@@ -105,14 +106,14 @@ async def route(state: AgentState) -> dict:
         )
         return _guardrail_response(guardrail_category, guardrail_reason)
 
-    guardrail_category = category if category != "unknown" else str(guardrail.get("category") or "in_scope")
-    guardrail_reason = reason if category != "unknown" else str(guardrail.get("reason") or "Allowed by route classifier.")
+    guardrail_category = category if category != GuardrailCategory.UNKNOWN else str(guardrail.get("category") or GuardrailCategory.IN_SCOPE)
+    guardrail_reason = reason if category != GuardrailCategory.UNKNOWN else str(guardrail.get("reason") or "Allowed by route classifier.")
 
     logger.info("route", intent=intent, query=query[:80], guardrail_category=guardrail_category)
 
     return {
         "intent": intent,
-        "guardrail_status": "allowed",
+        "guardrail_status": GuardrailStatus.ALLOWED,
         "guardrail_category": guardrail_category,
         "guardrail_reason": guardrail_reason,
         "messages": [AIMessage(content=f"[route] Intent classified as: {intent}")],

@@ -20,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ai_ops_engine.clients.mcp_client import get_mcp_client
 from ai_ops_engine.graph.write_tools import WRITE_TOOL_SERVER as _TOOL_SERVER_MAP
+from backend.constants import ApprovalStatus, DEFAULT_PAGE_LIMIT
 from backend.db.connection import get_db
 from backend.db.repositories import ApprovalRepository, IncidentRepository
 
@@ -79,7 +80,7 @@ class ExecutionOut(BaseModel):
 async def list_approvals(
     status: str | None = None,
     conversation_id: uuid.UUID | None = None,
-    limit: int = 50,
+    limit: int = DEFAULT_PAGE_LIMIT,
     db: AsyncSession = Depends(get_db),
 ) -> ApprovalListOut:
     """List approval requests with optional filters.
@@ -160,14 +161,14 @@ async def approve_action(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Approval {approval_id} not found.",
         )
-    if approval.status != "pending":
+    if approval.status != ApprovalStatus.PENDING:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Approval is already in '{approval.status}' state.",
         )
     updated = await repo.decide(
         approval_id,
-        decision="approved",
+        decision=ApprovalStatus.APPROVED,
         decided_by=body.decided_by,
         decision_note=body.note,
     )
@@ -205,14 +206,14 @@ async def reject_action(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Approval {approval_id} not found.",
         )
-    if approval.status != "pending":
+    if approval.status != ApprovalStatus.PENDING:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Approval is already in '{approval.status}' state.",
         )
     updated = await repo.decide(
         approval_id,
-        decision="rejected",
+        decision=ApprovalStatus.REJECTED,
         decided_by=body.decided_by,
         decision_note=body.note,
     )
@@ -245,7 +246,7 @@ async def execute_action(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"Approval {approval_id} not found.",
         )
-    if approval.status != "approved":
+    if approval.status != ApprovalStatus.APPROVED:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=f"Approval is in '{approval.status}' state, expected 'approved'.",

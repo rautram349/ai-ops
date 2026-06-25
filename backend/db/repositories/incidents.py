@@ -10,6 +10,7 @@ import structlog
 from sqlalchemy import or_, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.constants import DEFAULT_PAGE_LIMIT
 from backend.models.agent import Incident
 
 logger = structlog.get_logger(__name__)
@@ -124,7 +125,7 @@ class IncidentRepository:
         start_date: date | None = None,
         end_date: date | None = None,
         resolved: bool | None = None,
-        limit: int = 50,
+        limit: int = DEFAULT_PAGE_LIMIT,
     ) -> list[Incident]:
         """List incidents with optional date and type filters."""
         stmt = select(Incident).order_by(

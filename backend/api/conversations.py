@@ -17,6 +17,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, StringConstraints, field_serializer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.constants import DEFAULT_PAGE_LIMIT
 from backend.db.connection import get_db
 from backend.db.repositories import ConversationRepository
 
@@ -67,7 +68,7 @@ class ConversationTitleUpdate(BaseModel):
 
 @router.get("", response_model=list[ConversationOut])
 async def list_conversations(
-    limit: int = 50,
+    limit: int = DEFAULT_PAGE_LIMIT,
     db: AsyncSession = Depends(get_db),
 ) -> list[ConversationOut]:
     """List active conversations ordered by most recent activity.

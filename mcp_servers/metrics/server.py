@@ -15,20 +15,15 @@ Run this server::
 
 from __future__ import annotations
 
-import os
 import statistics
 
-from dotenv import load_dotenv
 from fastmcp import FastMCP
 
+from mcp_servers.config import MCP_METRICS_HOST as _HOST, MCP_METRICS_PORT as _PORT
 from mcp_servers.db import execute_query, safe_date
-
-load_dotenv()
 
 mcp = FastMCP("metrics-mcp")
 
-_HOST = os.environ.get("MCP_METRICS_HOST", "localhost")
-_PORT = int(os.environ.get("MCP_METRICS_PORT", "5010"))
 
 # ─────────────────────────────────────────────────────────────────────────────
 # helpers

@@ -9,12 +9,35 @@ need an uncached copy (e.g., in tests).
 from __future__ import annotations
 
 from functools import lru_cache
-from pathlib import Path
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, PydanticBaseSettingsSource, SettingsConfigDict
 
-ENV_FILE = Path(__file__).resolve().parents[2] / ".env"
+from backend.constants import (
+    BACKEND_DEFAULT_HOST,
+    BACKEND_DEFAULT_PORT,
+    CORS_DEFAULT_ORIGINS,
+    DATA_GEN_DEFAULT_END_DATE,
+    DATA_GEN_DEFAULT_SEED,
+    DATA_GEN_DEFAULT_START_DATE,
+    DATABASE_URL_ASYNC_DEFAULT,
+    DATABASE_URL_SYNC_DEFAULT,
+    DEFAULT_LOG_LEVEL,
+    EPAM_DIAL_DEFAULT_API_VERSION,
+    EPAM_DIAL_DEFAULT_DEPLOYMENT,
+    EPAM_DIAL_DEFAULT_EMBEDDING_DEPLOYMENT,
+    EPAM_DIAL_DEFAULT_ENDPOINT,
+    LANGFUSE_DEFAULT_HOST,
+    LLM_DEFAULT_MAX_RETRIES,
+    LLM_DEFAULT_TEMPERATURE,
+    LLM_DEFAULT_TIMEOUT,
+    MCP_DEFAULT_HOST,
+    MCP_INVENTORY_DEFAULT_PORT,
+    MCP_MARKETING_DEFAULT_PORT,
+    MCP_METRICS_DEFAULT_PORT,
+    MCP_SUPPORT_DEFAULT_PORT,
+    MONITOR_DEFAULT_INTERVAL_MINUTES,
+)
 
 
 class Settings(BaseSettings):
@@ -26,77 +49,79 @@ class Settings(BaseSettings):
     """
 
     model_config = SettingsConfigDict(
-        env_file=ENV_FILE,
+        env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )
 
     # ── Database ──────────────────────────────────────────────────────────────
     database_url: str = Field(
-        default="postgresql+asyncpg://postgres:postgres@localhost:5432/ecommerce_ops_brain",
+        default=DATABASE_URL_ASYNC_DEFAULT,
         description="Async database URL used by the FastAPI app.",
     )
     database_url_sync: str = Field(
-        default="postgresql://postgres:postgres@localhost:5432/ecommerce_ops_brain",
+        default=DATABASE_URL_SYNC_DEFAULT,
         description="Sync database URL used by Alembic migrations.",
     )
 
     # ── LLM — EPAM DIAL (AzureOpenAI proxy) ─────────────────────────────────
     epam_dial_api_key: str = Field(default="", description="EPAM DIAL API key.")
     epam_dial_endpoint: str = Field(
-        default="https://ai-proxy.lab.epam.com",
+        default=EPAM_DIAL_DEFAULT_ENDPOINT,
         description="EPAM DIAL Azure endpoint.",
     )
     epam_dial_deployment: str = Field(
-        default="gpt-4o-2024-11-20",
+        default=EPAM_DIAL_DEFAULT_DEPLOYMENT,
         description="Azure deployment name on EPAM DIAL.",
     )
     epam_dial_embedding_deployment: str = Field(
-        default="text-embedding-3-small",
+        default=EPAM_DIAL_DEFAULT_EMBEDDING_DEPLOYMENT,
         description="Azure deployment name for embedding model on EPAM DIAL.",
     )
     epam_dial_api_version: str = Field(
-        default="2023-12-01-preview",
+        default=EPAM_DIAL_DEFAULT_API_VERSION,
         description="Azure OpenAI API version.",
     )
-    llm_temperature: float = Field(default=0.1, ge=0.0, le=2.0)
+    llm_temperature: float = Field(default=LLM_DEFAULT_TEMPERATURE, ge=0.0, le=2.0)
+    llm_timeout: int = Field(default=LLM_DEFAULT_TIMEOUT, description="HTTP timeout for LLM requests in seconds.")
+    llm_max_retries: int = Field(default=LLM_DEFAULT_MAX_RETRIES, description="Max retries for LLM requests.")
 
     # ── MCP servers ───────────────────────────────────────────────────────────
-    mcp_metrics_host: str = Field(default="localhost")
-    mcp_metrics_port: int = Field(default=5010)
-    mcp_inventory_host: str = Field(default="localhost")
-    mcp_inventory_port: int = Field(default=5011)
-    mcp_marketing_host: str = Field(default="localhost")
-    mcp_marketing_port: int = Field(default=5012)
-    mcp_support_host: str = Field(default="localhost")
-    mcp_support_port: int = Field(default=5013)
+    mcp_metrics_host: str = Field(default=MCP_DEFAULT_HOST)
+    mcp_metrics_port: int = Field(default=MCP_METRICS_DEFAULT_PORT)
+    mcp_inventory_host: str = Field(default=MCP_DEFAULT_HOST)
+    mcp_inventory_port: int = Field(default=MCP_INVENTORY_DEFAULT_PORT)
+    mcp_marketing_host: str = Field(default=MCP_DEFAULT_HOST)
+    mcp_marketing_port: int = Field(default=MCP_MARKETING_DEFAULT_PORT)
+    mcp_support_host: str = Field(default=MCP_DEFAULT_HOST)
+    mcp_support_port: int = Field(default=MCP_SUPPORT_DEFAULT_PORT)
 
     # ── HTTP server ───────────────────────────────────────────────────────────
-    backend_host: str = Field(default="0.0.0.0")
-    backend_port: int = Field(default=8000)
+    backend_host: str = Field(default=BACKEND_DEFAULT_HOST)
+    backend_port: int = Field(default=BACKEND_DEFAULT_PORT)
     cors_origins: str = Field(
-        default="http://localhost:5173",
+        default=CORS_DEFAULT_ORIGINS,
         description="Comma-separated list of allowed CORS origins.",
     )
 
     # ── Data generation ───────────────────────────────────────────────────────
-    data_gen_seed: int = Field(default=42)
-    data_gen_start_date: str = Field(default="2026-02-01")
-    data_gen_end_date: str = Field(default="2026-04-06")
+    data_gen_seed: int = Field(default=DATA_GEN_DEFAULT_SEED)
+    data_gen_start_date: str = Field(default=DATA_GEN_DEFAULT_START_DATE)
+    data_gen_end_date: str = Field(default=DATA_GEN_DEFAULT_END_DATE)
 
     # ── Langfuse ──────────────────────────────────────────────────────────────
     langfuse_secret_key: str = Field(default="")
     langfuse_public_key: str = Field(default="")
-    langfuse_host: str = Field(default="http://localhost:3000")
+    langfuse_host: str = Field(default=LANGFUSE_DEFAULT_HOST)
 
     # ── Scheduled monitoring ──────────────────────────────────────────────────
     monitor_interval_minutes: int = Field(
-        default=30,
+        default=MONITOR_DEFAULT_INTERVAL_MINUTES,
         description="How often (in minutes) the background health monitor runs.",
     )
 
     # ── Logging ───────────────────────────────────────────────────────────────
-    log_level: str = Field(default="INFO", description="Root log level.")
+    log_level: str = Field(default=DEFAULT_LOG_LEVEL, description="Root log level.")
 
     @property
     def cors_origins_list(self) -> list[str]:

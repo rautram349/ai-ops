@@ -10,6 +10,7 @@ import structlog
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.constants import GuardrailCategory, GuardrailStatus, MessageRole, RiskLevel
 from backend.db.repositories import ApprovalRepository, ConversationRepository, IncidentRepository
 from backend.services.graph_runner import DefaultGraphRunner, GraphRunner
 
@@ -155,7 +156,7 @@ class ChatService:
                 )
 
         user_msg = await self._conv_repo.add_message(
-            conversation_id, role="user", content=message
+            conversation_id, role=MessageRole.USER, content=message
         )
         await self._conv_repo.touch(conversation_id)
 
@@ -165,7 +166,7 @@ class ChatService:
             for m in convo_with_msgs.messages:
                 if str(m.message_id) == str(user_msg.message_id):
                     continue
-                if m.role == "assistant" and m.structured_response:
+                if m.role == MessageRole.ASSISTANT and m.structured_response:
                     content = m.structured_response.get("summary", m.content)
                 else:
                     content = m.content
@@ -194,7 +195,7 @@ class ChatService:
                     target_entities=a.get("arguments", {}),
                     reason=a.get("reason", ""),
                     expected_impact=None,
-                    risk_level=a.get("risk_level", "medium"),
+                    risk_level=a.get("risk_level", RiskLevel.MEDIUM),
                     reversible=bool(a.get("reversible", True)),
                 )
                 enriched_approvals.append({**dict(a), "approval_id": str(db_approval.approval_id)})
@@ -220,7 +221,7 @@ class ChatService:
 
         assistant_msg = await self._conv_repo.add_message(
             conversation_id,
-            role="assistant",
+            role=MessageRole.ASSISTANT,
             content=graph_result["response_summary"],
             structured_response=response_details,
         )
@@ -286,9 +287,9 @@ class ChatService:
 
         lc_messages: list[Any] = []
         for msg in conversation_history[-10:]:
-            if msg["role"] == "user":
+            if msg["role"] == MessageRole.USER:
                 lc_messages.append(_HMsg(content=msg["content"]))
-            elif msg["role"] == "assistant":
+            elif msg["role"] == MessageRole.ASSISTANT:
                 lc_messages.append(_AIMsg(content=msg["content"]))
         lc_messages.append(_HMsg(content=message))
 
@@ -304,9 +305,9 @@ class ChatService:
             "response_summary":       "",
             "response_details":       {},
             "error":                  None,
-            "guardrail_status":       "allowed",
+            "guardrail_status":       GuardrailStatus.ALLOWED,
             "guardrail_reason":       "",
-            "guardrail_category":     "in_scope",
+            "guardrail_category":     GuardrailCategory.IN_SCOPE,
             "memory_matches":         [],
             "domain_plan":            [],
             "domain_findings":        [],

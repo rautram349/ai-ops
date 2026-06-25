@@ -10,6 +10,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from backend.constants import ConversationStatus, DEFAULT_PAGE_LIMIT
 from backend.models.agent import Conversation, Message
 
 
@@ -71,7 +72,7 @@ class ConversationRepository:
         )
         return result.scalar_one_or_none()
 
-    async def list(self, limit: int = 50) -> list[Conversation]:
+    async def list(self, limit: int = DEFAULT_PAGE_LIMIT) -> list[Conversation]:
         """List active conversations ordered by most recent activity.
 
         Args:
@@ -82,7 +83,7 @@ class ConversationRepository:
         """
         result = await self._session.execute(
             select(Conversation)
-            .where(Conversation.status == "active")
+            .where(Conversation.status == ConversationStatus.ACTIVE)
             .order_by(Conversation.last_activity.desc())
             .limit(limit)
         )
@@ -109,7 +110,7 @@ class ConversationRepository:
         await self._session.execute(
             update(Conversation)
             .where(Conversation.conversation_id == conversation_id)
-            .values(status="archived")
+            .values(status=ConversationStatus.ARCHIVED)
         )
 
     async def update_title(

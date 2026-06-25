@@ -8,6 +8,7 @@ import structlog
 
 from ai_ops_engine.clients.mcp_client import get_mcp_client
 from ai_ops_engine.graph.state import PendingApproval
+from backend.constants import RiskLevel
 
 logger = structlog.get_logger(__name__)
 
@@ -179,7 +180,7 @@ def _build_restock_approvals(
                     f"Restock approval prepared for {quantity} units of "
                     f"{pid} in {region}."
                 ),
-                risk_level="high",
+                risk_level=RiskLevel.HIGH,
                 reversible=True,
             )
         )

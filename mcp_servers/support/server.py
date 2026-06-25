@@ -15,20 +15,13 @@ Run this server::
 
 from __future__ import annotations
 
-import os
-
 import psycopg2.extras
-from dotenv import load_dotenv
 from fastmcp import FastMCP
 
+from mcp_servers.config import MCP_SUPPORT_HOST as _HOST, MCP_SUPPORT_PORT as _PORT
 from mcp_servers.db import db_connection, execute_query, safe_date
 
-load_dotenv()
-
 mcp = FastMCP("support-mcp")
-
-_HOST = os.environ.get("MCP_SUPPORT_HOST", "localhost")
-_PORT = int(os.environ.get("MCP_SUPPORT_PORT", "5013"))
 
 _VALID_CATEGORIES = {"shipping", "product_quality", "payment", "availability", "other"}
 _VALID_SEVERITIES = {"low", "medium", "high", "critical"}

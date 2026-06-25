@@ -18,6 +18,7 @@ from ai_ops_engine.graph.nodes.shared import (
 from ai_ops_engine.graph.state import AgentState
 from ai_ops_engine.graph.write_tools import WRITE_TOOL_NAMES
 from ai_ops_engine.llm import get_llm
+from backend.constants import RiskLevel
 from ai_ops_engine.prompts import RESPOND_SYSTEM as _RESPOND_SYSTEM
 
 logger = structlog.get_logger(__name__)
@@ -110,7 +111,7 @@ async def respond(state: AgentState) -> dict:
             {
                 "action_type": "investigate",
                 "reason": r,
-                "risk_level": "low",
+                "risk_level": RiskLevel.LOW,
                 "reversible": True,
             }
             for r in recs

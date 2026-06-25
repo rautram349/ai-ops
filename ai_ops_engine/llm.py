@@ -29,6 +29,6 @@ def get_llm() -> AzureChatOpenAI:
         azure_endpoint=settings.epam_dial_endpoint,
         api_key=settings.epam_dial_api_key,  # type: ignore[arg-type]
         temperature=settings.llm_temperature,
-        timeout=120,
-        max_retries=1,
+        timeout=settings.llm_timeout,
+        max_retries=settings.llm_max_retries,
     )

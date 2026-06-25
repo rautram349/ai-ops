@@ -1,14 +1,5 @@
-"""Database status string constants."""
+"""Re-export of status constants from backend.constants (kept for backward compat)."""
 
-from __future__ import annotations
+from backend.constants import ApprovalStatus, ConversationStatus
 
-
-class ApprovalStatus:
-    PENDING = "pending"
-    APPROVED = "approved"
-    REJECTED = "rejected"
-
-
-class ConversationStatus:
-    ACTIVE = "active"
-    ARCHIVED = "archived"
+__all__ = ["ApprovalStatus", "ConversationStatus"]

@@ -16,20 +16,13 @@ Run this server::
 
 from __future__ import annotations
 
-import os
-
 import psycopg2.extras
-from dotenv import load_dotenv
 from fastmcp import FastMCP
 
+from mcp_servers.config import MCP_MARKETING_HOST as _HOST, MCP_MARKETING_PORT as _PORT
 from mcp_servers.db import db_connection, execute_query, safe_date
 
-load_dotenv()
-
 mcp = FastMCP("marketing-mcp")
-
-_HOST = os.environ.get("MCP_MARKETING_HOST", "localhost")
-_PORT = int(os.environ.get("MCP_MARKETING_PORT", "5012"))
 
 
 # ─────────────────────────────────────────────────────────────────────────────
